@@ -1,4 +1,7 @@
 import pygame
+import os
+
+os.chdir(r'Pics')
 
 pygame.init()
 
@@ -13,7 +16,7 @@ game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
-card_img = pygame.image.load('12_Q_di_cuori.jpg')
+card_img = pygame.image.load('87px-12_Q_di_cuori.jpg')
 
 def resizePicDimensions(image, width=None, height=None):
 
@@ -25,8 +28,8 @@ def resizePicDimensions(image, width=None, height=None):
 		return width, height
 
 
-card_resolution = resizePicDimensions(card_img, height=75)
-card_img = pygame.transform.scale(card_img, card_resolution)
+#card_resolution = resizePicDimensions(card_img, height=75)
+#card_img = pygame.transform.scale(card_img, card_resolution)
 rect = card_img.get_rect()
 # rect.center = (int(pygame.Surface.get_width(card_img) / 2), int(pygame.Surface.get_height(card_img) / 2))
 
@@ -43,7 +46,12 @@ rect.topleft = ((x, y))
 
 print('rect center is: ', rect.center)
 
-xy_coords = [(x + pygame.Surface.get_width(), y) for i in range(5)]
+xy_coords = [(x + pygame.Surface.get_width(card_img) * i + 20 * i, y) for i in range(1, 6)]
+print(xy_coords)
+
+rects_ = [card_img.get_rect() for i in range(1, 6)]
+for i, j in zip(rects_, xy_coords):
+	i.topleft = (j)
 
 crashed = False
 clicked = False
@@ -58,18 +66,22 @@ while not crashed:
 		if event.type == pygame.QUIT:
 			crashed = True
 
-		if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
-			clicked = True
-		if rect.collidepoint((mx, my)):
-			hover = True
-		else:
-			hover = False
+		for i in rects_:
+			if event.type == pygame.MOUSEBUTTONDOWN and i.collidepoint((mx, my)):
+				clicked = True
+				print(True)
+		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
+		# 	clicked = True
+		# if rect.collidepoint((mx, my)):
+		# 	hover = True
+		# else:
+		# 	hover = False
 
 		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
 		# 	clicked = True
 		# 	print('True')
-		if event.type == pygame.MOUSEBUTTONUP:
-			clicked = False
+		# if event.type == pygame.MOUSEBUTTONUP:
+		# 	clicked = False
 		# if (mx >= x and mx <= x + card_resolution[0]) and (my >= y and my <= y + card_resolution[1]):
 		# 	hover = True
 		# else:
@@ -77,19 +89,18 @@ while not crashed:
 	
 	game_display.fill(green)		
 
-	if clicked:
-		game_display.blit(card_img, (mx, my))
-	elif hover:
-		game_display.blit(card_img, (x, y - 20))
+	# if clicked:
+	# 	game_display.blit(card_img, (mx, my))
+	# elif hover:
+	# 	game_display.blit(card_img, (x, y - 20))
 	# # elif hover:
 	# # 	game_display.blit(card_img, (x, y - 20))
-	else:
-		game_display.blit(card_img, rect)
-		
-
+	# else:
+	# 	game_display.blit(card_img, rect)
 	
+	for i in rects_:
+		game_display.blit(card_img, i)
 	
-
 	pygame.display.update()
 	clock.tick(60)
 
