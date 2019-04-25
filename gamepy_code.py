@@ -70,6 +70,8 @@ while not crashed:
 			if event.type == pygame.MOUSEBUTTONDOWN and i.collidepoint((mx, my)):
 				clicked = True
 				print(True)
+				val = i
+
 		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
 		# 	clicked = True
 		# if rect.collidepoint((mx, my)):
@@ -80,8 +82,8 @@ while not crashed:
 		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
 		# 	clicked = True
 		# 	print('True')
-		# if event.type == pygame.MOUSEBUTTONUP:
-		# 	clicked = False
+		if event.type == pygame.MOUSEBUTTONUP:
+			clicked = False
 		# if (mx >= x and mx <= x + card_resolution[0]) and (my >= y and my <= y + card_resolution[1]):
 		# 	hover = True
 		# else:
@@ -97,9 +99,14 @@ while not crashed:
 	# # 	game_display.blit(card_img, (x, y - 20))
 	# else:
 	# 	game_display.blit(card_img, rect)
-	
-	for i in rects_:
-		game_display.blit(card_img, i)
+	if clicked:
+		game_display.blit(card_img, (mx, my))
+
+		for j in [i for i in rects_ if i != val]:
+			game_display.blit(card_img, j)
+	else:
+		for i in rects_:
+			game_display.blit(card_img, i)
 	
 	pygame.display.update()
 	clock.tick(60)
