@@ -16,7 +16,9 @@ game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
+card_other = [pygame.image.load(i) for i in ['87px-11_J_di_cuori.jpg', '87px-13_K_di_cuori.jpg', '87px-38_Q_di_fiori.jpg']]
 card_img = pygame.image.load('87px-12_Q_di_cuori.jpg')
+
 
 def resizePicDimensions(image, width=None, height=None):
 
@@ -31,9 +33,14 @@ def resizePicDimensions(image, width=None, height=None):
 #card_resolution = resizePicDimensions(card_img, height=75)
 #card_img = pygame.transform.scale(card_img, card_resolution)
 rect = card_img.get_rect()
+rect_other = [i.get_rect() for i in card_other]
+
+other_coords = [(0, 400), (600, 0), (1200 - 87, 400)]
+
+for i, j in zip(rect_other, other_coords):
+	i.topleft = (j)
+
 # rect.center = (int(pygame.Surface.get_width(card_img) / 2), int(pygame.Surface.get_height(card_img) / 2))
-
-
 
 
 def card(x, y):
@@ -54,42 +61,33 @@ rects_ = [card_img.get_rect() for i in range(1, 6)]
 for i, j in zip(rects_, xy_coords):
 	i.topleft = (j)
 
+# Window is closed 
 crashed = False
+# Card is clicked
 clicked = False
+# On card hover
 hover = False
+# Card played
 played = False
 
 
 while not crashed:
 	
+	# get mouse x, y coordinates
 	mx, my = pygame.mouse.get_pos()	
 
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			crashed = True
 
+		# on left click
 		for i in rects_:
 			if event.type == pygame.MOUSEBUTTONDOWN and i.collidepoint((mx, my)):
 				clicked = True
 				val = i
 
-
-		
-		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
-		# 	clicked = True
-		# if rect.collidepoint((mx, my)):
-		# 	hover = True
-		# else:
-		# 	hover = False
-
-		# if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint((mx, my)):
-		# 	clicked = True
-		# 	print('True')
-		
-
-
+		# on letting go of left click
 		if clicked and event.type == pygame.MOUSEBUTTONUP:
-			print('True')
 			keep = val.topleft
 			val.topleft = ((mx, my))
 			
@@ -101,46 +99,32 @@ while not crashed:
 				played = False
 
 			clicked = False
-
-
-
-
-		# if (mx >= x and mx <= x + card_resolution[0]) and (my >= y and my <= y + card_resolution[1]):
-		# 	hover = True
-		# else:
-		# 	hover = False
 	
 	game_display.fill(green)		
 
-	# if clicked:
-	# 	game_display.blit(card_img, (mx, my))
-	# elif hover:
-	# 	game_display.blit(card_img, (x, y - 20))
-	# # elif hover:
-	# # 	game_display.blit(card_img, (x, y - 20))
-	# else:
-	# 	game_display.blit(card_img, rect)
 	
 	rect_drawing = pygame.draw.rect(game_display, black, [400, 300, 400, 200], 2)
+
+	for i, j in zip(card_other, rect_other):
+			game_display.blit(i, j)
 
 	if clicked:
 		game_display.blit(card_img, (mx, my))
 
-
 		for j in [i for i in rects_ if i != val]:
 			game_display.blit(card_img, j)
+	
 	elif played:
-		game_display.blit(card_img, val.topleft)
+		game_display.blit(card_img, rect_drawing.center)
 
 		for j in [i for i in rects_ if i != val]:
 			game_display.blit(card_img, j)
 
-	# elif played:
-	# 	game_display.blit()
 	else:
 		for i in rects_:
 			game_display.blit(card_img, i)
-	
+
+		
 
 
 	pygame.display.update()
