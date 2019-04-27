@@ -1,6 +1,12 @@
 import pygame
 import os
 import time
+from card_vars import ranks, suits, card
+import threading
+import queue
+import time
+
+q = queue.Queue()
 
 os.chdir(r'Pics')
 
@@ -17,8 +23,27 @@ game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
-# card_other = [pygame.image.load(i) for i in ['87px-11_J_di_cuori.jpg', '87px-13_K_di_cuori.jpg', '87px-38_Q_di_fiori.jpg']]
-# card_img = pygame.image.load('87px-12_Q_di_cuori.jpg')
+card_pics = [i for i in os.listdir()]
+
+card_pic_dict = {}
+
+for i in card_pics:
+    if 'Francese' not in i:
+        split = i.split('_')
+        split_rank = split[0]
+        split_suit = split[-1].split('.')[0]
+        card_pic_dict[card(Rank=split_rank, Suit=split_suit)] = i
+
+hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
+hand_load_pics = [pygame.image.load(card_pic_dict[i]) for i in hand]
+
+
+
+hand_rects = [i.get_rect() for i in hand_load_pics]
+xy_coords = [(300 + (87 + 5) * i, 680) for i in range(1, len(hand) + 1)]
+
+for i, j in zip(hand_rects, xy_coords):
+	i.topleft = (j)
 
 
 def resizePicDimensions(image, width=None, height=None):
@@ -65,10 +90,7 @@ def card(x, y):
 
 # Window is closed 
 
-# # Card is clicked
-# clicked = False
-# # Card played
-# played = False
+
 
 # turn = False
 
@@ -82,19 +104,38 @@ def title_screen():
 	
 	intro = True
 
+	message = []
+
 	while intro:
 
 		mx, my = pygame.mouse.get_pos()	
 
+		
+		try:
+			num = q.get(False)
+			if num:
+				print('got a message')
+				message.append(num)
+				print('message appended: ', message)
+		except queue.Empty:
+			pass
+
+		
+
 		game_display.fill(white)
 		rect_drawing1 = pygame.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
+
+		if len(message):
+			print('You got mail')
+			intro = False
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				pygame.quit()
 				quit()
-			if event.type == pygame.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
-				intro = False
+			
+			# if event.type == pygame.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
+			# 	intro = False
 
 		text_font = pygame.font.Font('freesansbold.ttf', 115)
 		TextSurf, TextRect = text_objects('Belote', text_font)
@@ -105,10 +146,17 @@ def title_screen():
 		pygame.display.update()
 		clock.tick(60)
 
+
+	print('about to exit title_screen')
 	return mainLoop()
 
 
 def mainLoop():
+
+	# Card is clicked
+	clicked = False
+	# Card played
+	played = False
 
 	crashed = False
 
@@ -122,6 +170,14 @@ def mainLoop():
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				crashed = True
+
+		
+		for i, j in zip(hand_load_pics, hand_rects):
+			game_display.blit(i, j)
+
+
+
+
 
 		# 	# on left click
 		# 	for i in rects_:
@@ -192,4 +248,17 @@ def mainLoop():
 	pygame.quit()
 	quit()
 
-title_screen()
+def inputFunc():
+	time.sleep(3)
+	message = 'Hello'
+	q.put(message)
+	return None
+
+t1 = threading.Thread(target = title_screen)
+t2 = threading.Thread(target = inputFunc)
+
+print('lets go')
+
+t1.start()
+t2.start()
+
