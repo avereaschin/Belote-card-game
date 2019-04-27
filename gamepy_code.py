@@ -67,12 +67,14 @@ for i, j in zip(rects_, xy_coords):
 crashed = False
 # Card is clicked
 clicked = False
-# On card hover
-hover = False
 # Card played
 played = False
 
 turn = False
+
+UPDATE_LATER = pygame.USEREVENT + 1
+
+def 
 
 while not crashed:
 	
@@ -120,9 +122,8 @@ while not crashed:
 
 		game_display.blit(card_other[rect_other.index(oval)], oval)
 
-		# for i, j in zip(card_other, new_coords):
-		# 	print('Yes')
-		# 	game_display.blit(i, j)
+		for j in [i for i in rects_ if i != oval]:
+			game_display.blit(card_img, j)
 
 	else:
 		for i, j in zip(card_other, rect_other):
