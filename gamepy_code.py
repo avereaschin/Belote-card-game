@@ -1,5 +1,6 @@
 import pygame
 import os
+import time
 
 os.chdir(r'Pics')
 
@@ -36,6 +37,7 @@ rect = card_img.get_rect()
 rect_other = [i.get_rect() for i in card_other]
 
 other_coords = [(0, 400), (600, 0), (1200 - 87, 400)]
+new_coords = [(300, 400), (600, 200), (1200 - 300 - 87, 400)]
 
 for i, j in zip(rect_other, other_coords):
 	i.topleft = (j)
@@ -70,6 +72,7 @@ hover = False
 # Card played
 played = False
 
+turn = False
 
 while not crashed:
 	
@@ -85,6 +88,13 @@ while not crashed:
 			if event.type == pygame.MOUSEBUTTONDOWN and i.collidepoint((mx, my)):
 				clicked = True
 				val = i
+
+		for j in rect_other:
+			if event.type == pygame.MOUSEBUTTONDOWN and j.collidepoint((mx, my)):
+				turn = True
+				oval = j
+				oval.x = new_coords[rect_other.index(oval)][0]
+				oval.y = new_coords[rect_other.index(oval)][1]
 
 		# on letting go of left click
 		if clicked and event.type == pygame.MOUSEBUTTONUP:
@@ -105,7 +115,17 @@ while not crashed:
 	
 	rect_drawing = pygame.draw.rect(game_display, black, [400, 300, 400, 200], 2)
 
-	for i, j in zip(card_other, rect_other):
+
+	if turn == True:
+
+		game_display.blit(card_other[rect_other.index(oval)], oval)
+
+		# for i, j in zip(card_other, new_coords):
+		# 	print('Yes')
+		# 	game_display.blit(i, j)
+
+	else:
+		for i, j in zip(card_other, rect_other):
 			game_display.blit(i, j)
 
 	if clicked:

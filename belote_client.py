@@ -8,17 +8,13 @@ Created on Fri Oct  5 18:01:05 2018
 import socket
 import sys
 import pickle
-from collections import namedtuple 
+from card_vars import ranks, suits, card
 from random import choice 
 import threading
 import re
 import queue
 import select
 
-ranks = [str(i) for i in range(7, 11)] + 'J, Q, K, A'.split(', ')
-suits = ['Clubs', 'Diamonds', 'Hearts', 'Spades']
-card = namedtuple('card', ['Rank', 'Suit'])
-deck = [card(rank, suit) for rank in ranks for suit in suits]
 
 host = 'localhost'
 port = 54321
