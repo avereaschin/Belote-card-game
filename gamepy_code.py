@@ -3,10 +3,8 @@ import os
 import time
 from card_vars import ranks, suits, card
 import threading
+from thread_test import q, inputFunc	
 import queue
-import time
-
-q = queue.Queue()
 
 os.chdir(r'Pics')
 
@@ -104,30 +102,24 @@ def title_screen():
 	
 	intro = True
 
-	message = []
+	crashed = False
+	message = ''
+
+	game_display.fill(white)
 
 	while intro:
 
 		mx, my = pygame.mouse.get_pos()	
 
-		
 		try:
-			num = q.get(False)
-			if num:
-				print('got a message')
-				message.append(num)
-				print('message appended: ', message)
+			message = q.get(False)		
 		except queue.Empty:
 			pass
 
-		
+		if message:
+			return mainLoop()
 
-		game_display.fill(white)
 		rect_drawing1 = pygame.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
-
-		if len(message):
-			print('You got mail')
-			intro = False
 
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -144,12 +136,8 @@ def title_screen():
 		game_display.blit(TextSurf, TextRect)
 
 		pygame.display.update()
-		clock.tick(60)
-
 
 	print('about to exit title_screen')
-	return mainLoop()
-
 
 def mainLoop():
 
@@ -157,7 +145,7 @@ def mainLoop():
 	clicked = False
 	# Card played
 	played = False
-
+	# Exit application
 	crashed = False
 
 	while not crashed:
@@ -248,17 +236,14 @@ def mainLoop():
 	pygame.quit()
 	quit()
 
-def inputFunc():
-	time.sleep(3)
-	message = 'Hello'
-	q.put(message)
-	return None
-
-t1 = threading.Thread(target = title_screen)
 t2 = threading.Thread(target = inputFunc)
+
+t2.start()
 
 print('lets go')
 
-t1.start()
-t2.start()
+title_screen()
+
+# t1.start()
+# t2.start()
 
