@@ -22,6 +22,8 @@ game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
+cardback_pic = pygame.image.load('Francese_retro_Blu.jpg')
+
 card_pics = [i for i in os.listdir()]
 
 card_pic_dict = {}
@@ -54,8 +56,9 @@ print(xy_coords)
 for i, j in zip(hand_rects, xy_coords):
 	i.topleft = (j)
 
-
-
+rand_card = pygame.image.load(card_pic_dict[choice(deck)])
+rand_card_rect = rand_card.get_rect()
+rand_card_rect.center = (display_width / 2, display_height / 2)
 
 def card(x, y):
 	game_display.blit(card_img, (x, y))
@@ -154,6 +157,8 @@ def mainLoop():
 
 		
 		# rect_drawing = pygame.draw.rect(game_display, black, [400, 300, 400, 200], 2)
+
+		game_display.blit(rand_card, rand_card_rect)
 
 		if clicked:
 			for i in hand_load_pics:
