@@ -17,12 +17,15 @@ display_height = 720
 black = (0, 0, 0)
 white = (255, 255, 255)
 green = (0, 150, 0)
+gray = (220,220,220)
 
 game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
 cardback_pic = pygame.image.load('Francese_retro_Blu.jpg')
+cardback_rect = cardback_pic.get_rect()
+cardback_rect.center = (display_width / 2 + 15, display_height / 2)
 
 card_pics = [i for i in os.listdir()]
 
@@ -59,6 +62,8 @@ for i, j in zip(hand_rects, xy_coords):
 rand_card = pygame.image.load(card_pic_dict[choice(deck)])
 rand_card_rect = rand_card.get_rect()
 rand_card_rect.center = (display_width / 2, display_height / 2)
+
+west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
 
 def card(x, y):
 	game_display.blit(card_img, (x, y))
@@ -158,14 +163,18 @@ def mainLoop():
 		
 		# rect_drawing = pygame.draw.rect(game_display, black, [400, 300, 400, 200], 2)
 
+		game_display.blit(cardback_pic, cardback_rect)
 		game_display.blit(rand_card, rand_card_rect)
+		
+		for i in west_north_east:
+				game_display.blit(cardback_pic, i)
 
 		if clicked:
 			for i in hand_load_pics:
 				game_display.blit(val[0], (mx, my))
 			for i, j in zip([k for k in hand_load_pics if k != val[0]], [l for l in hand_rects if l != val[1]]):
 				game_display.blit(i, j)
-		
+
 
 		else:
 			for i, j in zip(hand_load_pics, hand_rects):
