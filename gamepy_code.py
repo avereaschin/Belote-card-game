@@ -1,4 +1,4 @@
-import pygame
+import pg as pg
 import os
 import time
 from card_vars import ranks, suits, card, deck
@@ -9,6 +9,8 @@ from random import choice
 
 # path to game assets
 os.chdir(r'Pics')
+
+pg.init()
 
 def findMargin(hand):
 	"""
@@ -28,16 +30,18 @@ class ImageTest(pg.sprite.Sprite):
 		self.name = card(Rank='{}'.format(split_(pic)[0]), Suit='{}'.format(split_(pic.split('.')[0])[-1]))
 		self.rect = self.image.get_rect()
 
+# screen resolution
 display_width = 1280
 display_height = 720
 
+#rgb codes
 black = (0, 0, 0)
 white = (255, 255, 255)
 green = (0, 150, 0)
 
-game_display = pygame.display.set_mode((display_width, display_height))
-pygame.display.set_caption('Belote')
-clock = pygame.time.Clock()
+game_display = pg.display.set_mode((display_width, display_height))
+pg.display.set_caption('Belote')
+clock = pg.time.Clock()
 
 cardback = ImageTest('Francese_retro_Blu.jpg')
 cardback.center = (display_width / 2 + 15, display_height / 2)
@@ -72,7 +76,7 @@ def title_screen():
 
 	while not crashed:
 
-		mx, my = pygame.mouse.get_pos()	
+		mx, my = pg.mouse.get_pos()	
 
 		# try:
 		# 	message = q.get(False)		
@@ -82,22 +86,22 @@ def title_screen():
 		# if message:
 		# 	return mainLoop()
 
-		rect_drawing1 = pygame.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
+		rect_drawing1 = pg.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
 
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
+		for event in pg.event.get():
+			if event.type == pg.QUIT:
 				crashed = True
 			
-			if event.type == pygame.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
+			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
 				return mainLoop()
 
-		text_font = pygame.font.Font('freesansbold.ttf', 115)
+		text_font = pg.font.Font('freesansbold.ttf', 115)
 		TextSurf, TextRect = text_objects('Belote', text_font)
 		TextRect.center = ((display_width / 2), (display_height / 3))
 		
 		game_display.blit(TextSurf, TextRect)
 
-		pygame.display.update()
+		pg.display.update()
 
 	print('about to exit title_screen')
 
@@ -115,23 +119,23 @@ def mainLoop():
 		game_display.fill(green)
 
 		# get mouse x, y coordinates
-		mx, my = pygame.mouse.get_pos()	
+		mx, my = pg.mouse.get_pos()	
 
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
+		for event in pg.event.get():
+			if event.type == pg.QUIT:
 				crashed = True
 
 			# on left click
 			for i, j in zip(hand_load_pics, hand_rects):
-				if event.type == pygame.MOUSEBUTTONDOWN and j.collidepoint((mx, my)):
+				if event.type == pg.MOUSEBUTTONDOWN and j.collidepoint((mx, my)):
 					clicked = True
 					val = [i, j]		
-				if clicked and event.type == pygame.MOUSEBUTTONUP:
+				if clicked and event.type == pg.MOUSEBUTTONUP:
 					clicked = False
 
 
 		# 	# on letting go of left click
-		# 	if clicked and event.type == pygame.MOUSEBUTTONUP:
+		# 	if clicked and event.type == pg.MOUSEBUTTONUP:
 		# 		keep = val.topleft
 		# 		val.topleft = ((mx, my))
 				
@@ -147,7 +151,7 @@ def mainLoop():
 				
 
 		
-		# rect_drawing = pygame.draw.rect(game_display, black, [400, 300, 400, 200], 2)
+		# rect_drawing = pg.draw.rect(game_display, black, [400, 300, 400, 200], 2)
 
 		game_display.blit(cardback_pic, cardback_rect)
 		game_display.blit(rand_card, rand_card_rect)
@@ -167,10 +171,10 @@ def mainLoop():
 				game_display.blit(i, j)		
 
 
-		pygame.display.update()
+		pg.display.update()
 		clock.tick(60)
 
-	pygame.quit()
+	pg.quit()
 	quit()
 
 # t2 = threading.Thread(target = inputFunc)
