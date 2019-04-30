@@ -10,13 +10,18 @@ width = 1280
 height = 720
 
 class ImageTest(pg.sprite.Sprite):
+	"""
+	Creates a sprite by adding an image and creating a rect for it
+	"""
+
 	def __init__(self, pic):
 		pg.sprite.Sprite.__init__(self, test_group) 
 
 		self.image = pg.image.load(pic)
-		self.name = pic
-		
 		self.rect = self.image.get_rect()
+
+		split_ = lambda x: x.split('_')
+		self.name = card(Rank='{}'.format(split_(pic)[0]), Suit='{}'.format(split_(pic.split('.')[0])[-1]))
 
 
 test_group = pg.sprite.Group()
@@ -43,6 +48,8 @@ while not crashed:
 			crashed = True
 
 	for i in test_group:
-		game_display.blit(i.image, i.rect)
+		if i.name == card(Rank='8', Suit='Clubs'):
+			i.rect.center = (300, 300)
+			game_display.blit(i.image, i.rect)
 
 	pg.display.update()

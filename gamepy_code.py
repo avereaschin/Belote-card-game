@@ -7,9 +7,26 @@ from thread_test import q, inputFunc
 import queue
 from random import choice
 
+# path to game assets
 os.chdir(r'Pics')
 
-pygame.init()
+def findMargin(hand):
+	"""
+	Finds upper left x, y coord for the first card in a given hand in order to center it on the screen
+	"""
+	return (display_width / 2 - ((88 * len(hand) + 6 * (len(hand) - 1)) / 2))
+
+class ImageTest(pg.sprite.Sprite):
+	"""
+	Creates a sprite by adding an image and creating a rect for it
+	"""
+
+	def __init__(self, pic):
+		pg.sprite.Sprite.__init__(self, test_group) 
+
+		self.image = pg.image.load(pic)
+		self.name = card(Rank='{}'.format(split_(pic)[0]), Suit='{}'.format(split_(pic.split('.')[0])[-1]))
+		self.rect = self.image.get_rect()
 
 display_width = 1280
 display_height = 720
@@ -17,54 +34,19 @@ display_height = 720
 black = (0, 0, 0)
 white = (255, 255, 255)
 green = (0, 150, 0)
-gray = (220,220,220)
 
 game_display = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('Belote')
 clock = pygame.time.Clock()
 
-cardback_pic = pygame.image.load('Francese_retro_Blu.jpg')
-cardback_rect = cardback_pic.get_rect()
-cardback_rect.center = (display_width / 2 + 15, display_height / 2)
+cardback = ImageTest('Francese_retro_Blu.jpg')
+cardback.center = (display_width / 2 + 15, display_height / 2)
 
-card_pics = [i for i in os.listdir()]
-
-card_pic_dict = {}
-
-for i in card_pics:
-    if 'Francese' not in i:
-        split = i.split('_')
-        split_rank = split[0]
-        split_suit = split[-1].split('.')[0]
-        card_pic_dict[card(Rank=split_rank, Suit=split_suit)] = i
-
-
-
-# class ImageTest(pygame.sprite.Sprite):
-# 	def __init__(self, pic, x, y):
-# 		super.__init__()
-
-# 		self.image = pygame.image.load(pic)
-		
-# 		self.rect = self.image.get_rect()
-# 		self.rect.center = ((x, y))
-
-# example = ImageTest('7_of_Clubs.jpg', 100, 100)
-
+# upper left x, y coords of each player's hand (except your own)
+west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
 
 # test hand 
 hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
-
-# list of loaded card images
-hand_load_pics = [pygame.image.load(card_pic_dict[i]) for i in hand]
-
-hand_load_pics = [pygame.transform.scale(i, (88, 120)) for i in hand_load_pics]
-
-# add rects to each card
-hand_rects = [i.get_rect() for i in hand_load_pics]
-
-def findMargin(hand):
-	return (display_width / 2 - ((88 * len(hand) + 6 * (len(hand) - 1)) / 2))
 
 # (x, y) coordinates for each card
 xy_coords = [(findMargin(hand) + (88 + 6) * i, display_height - 120) for i in range(len(hand))]
@@ -73,17 +55,7 @@ print(xy_coords)
 for i, j in zip(hand_rects, xy_coords):
 	i.topleft = (j)
 
-rand_card = pygame.image.load(card_pic_dict[choice(deck)])
-rand_card_rect = rand_card.get_rect()
-rand_card_rect.center = (display_width / 2, display_height / 2)
 
-west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
-
-def card(x, y):
-	game_display.blit(card_img, (x, y))
-
-
-# UPDATE_LATER = pygame.USEREVENT + 1
 
 def text_objects(text, font):
     textSurface = font.render(text, True, black)
@@ -192,36 +164,7 @@ def mainLoop():
 
 		else:
 			for i, j in zip(hand_load_pics, hand_rects):
-				game_display.blit(i, j)
-
-
-		# if turn == True:
-
-		# 	game_display.blit(card_other[rect_other.index(oval)], oval)
-
-		# 	for j in [i for i in rects_ if i != oval]:
-		# 		game_display.blit(card_img, j)
-
-		# else:
-		# 	for i, j in zip(card_other, rect_other):
-		# 		game_display.blit(i, j)
-
-		
-
-		# 	for j in [i for i in rects_ if i != val]:
-		# 		game_display.blit(card_img, j)
-		
-		# elif played:
-		# 	game_display.blit(card_img, rect_drawing.center)
-
-		# 	for j in [i for i in rects_ if i != val]:
-		# 		game_display.blit(card_img, j)
-
-		# else:
-		# 	for i in rects_:
-		# 		game_display.blit(card_img, i)
-
-			
+				game_display.blit(i, j)		
 
 
 		pygame.display.update()
