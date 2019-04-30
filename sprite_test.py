@@ -1,5 +1,6 @@
 import pygame as pg
 import os
+from card_vars import ranks, suits, card, deck
 
 os.chdir(r'C:\Users\andre\Documents\GitHub\Belote-card-game\Pics')
 
@@ -8,19 +9,23 @@ pg.init()
 width = 1280
 height = 720
 
-test_group = pg.sprite.Group()
-
 class ImageTest(pg.sprite.Sprite):
-	def __init__(self, pic, x, y):
+	def __init__(self, pic):
 		pg.sprite.Sprite.__init__(self, test_group) 
 
 		self.image = pg.image.load(pic)
+		self.name = pic
 		
 		self.rect = self.image.get_rect()
-		self.rect.center = ((x, y))
 
-example1 = ImageTest('7_of_Clubs.jpg', 0, 0)
-example2 = ImageTest('8_of_Clubs.jpg', 300, 300)
+
+test_group = pg.sprite.Group()
+
+for i in ['7_of_Clubs.jpg', '8_of_Clubs.jpg']:
+	ImageTest(i)
+for i, j in zip(test_group, [(100, 100), (300, 300)]):
+	i.rect.center = j
+
 
 print(test_group.sprites())
 
@@ -29,12 +34,15 @@ pg.display.set_caption('Test')
 
 crashed = False
 
+for i in test_group:
+	print(i.name)
+
 while not crashed:
 	for event in pg.event.get():
 		if event.type == pg.QUIT:
 			crashed = True
 
-	game_display.blit(example1.image, example1.rect)
-	game_display.blit(example2.image, example2.rect)
+	for i in test_group:
+		game_display.blit(i.image, i.rect)
 
 	pg.display.update()
