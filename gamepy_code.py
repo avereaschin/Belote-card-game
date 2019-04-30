@@ -38,6 +38,20 @@ for i in card_pics:
         split_suit = split[-1].split('.')[0]
         card_pic_dict[card(Rank=split_rank, Suit=split_suit)] = i
 
+
+
+# class ImageTest(pygame.sprite.Sprite):
+# 	def __init__(self, pic, x, y):
+# 		super.__init__()
+
+# 		self.image = pygame.image.load(pic)
+		
+# 		self.rect = self.image.get_rect()
+# 		self.rect.center = ((x, y))
+
+# example = ImageTest('7_of_Clubs.jpg', 100, 100)
+
+
 # test hand 
 hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
 
@@ -222,7 +236,8 @@ def mainLoop():
 
 print('lets go')
 
-title_screen()
+if __name__ == "__main__":
+	title_screen()
 
 # t1.start()
 # t2.start()
