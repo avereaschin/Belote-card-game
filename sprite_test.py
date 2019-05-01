@@ -9,6 +9,8 @@ pg.init()
 width = 1280
 height = 720
 
+black = (255, 255, 255)
+
 class ImageTest(pg.sprite.Sprite):
 	"""
 	Creates a sprite by adding an image and creating a rect for it
@@ -23,6 +25,17 @@ class ImageTest(pg.sprite.Sprite):
 		split_ = lambda x: x.split('_')
 		self.name = card(Rank='{}'.format(split_(pic)[0]), Suit='{}'.format(split_(pic.split('.')[0])[-1]))
 
+class TextTest():
+	def __init__(self, text, size, x, y):
+
+		self.text, self.size, self.x, self.y = text, size, x, y
+		self.text_font = pg.font.SysFont('Arial', size)
+		self.text_surf = pg.font.Font.render(self.text_font, text, True, black)
+		self.text_rect = self.text_surf.get_rect()
+		self.text_rect.topleft = (x, y)
+
+example = TextTest('Play', 40, 0, 0)
+print(example.text_rect.size)
 
 test_group = pg.sprite.Group()
 
@@ -51,5 +64,6 @@ while not crashed:
 		if i.name == card(Rank='8', Suit='Clubs'):
 			i.rect.center = (300, 300)
 			game_display.blit(i.image, i.rect)
+			game_display.blit(example.text_surf, example.text_rect)
 
 	pg.display.update()
