@@ -157,29 +157,21 @@ def mainLoop():
 
 		msg = ''
 
+		# message handling
 		try:
 			msg = q.get(False)		
 		except queue.Empty:
 			pass
 
-		if msg:
-			return mainLoop()
+		if 'hand' in message:
+			hand = 
+		elif 
+			
 
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
 
-			
-			# on left click
-			# for i, j in zip(hand_load_pics, hand_rects):
-			# 	if event.type == pg.MOUSEBUTTONDOWN and j.collidepoint((mx, my)):
-			# 		clicked = True
-			# 		val = [i, j]		
-			# 	if clicked and event.type == pg.MOUSEBUTTONUP:
-			# 		clicked = False			
-
-		
-		# rect_drawing = pg.draw.rect(game_display, black, [400, 300, 400, 200], 2)
 
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (0, int((display_height - 88 - 25*7) / 2 + 25 * j)))
@@ -190,21 +182,7 @@ def mainLoop():
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (display_width - 120, int((display_height - 88 - 25*7) / 2 + 25 * j)))
 
-		# game_display.blit(rand_card, rand_card_rect)
-		
-		# for i in west_north_east:
-		# 		game_display.blit(cardback.image, i)
-
-		# if clicked:
-		# 	for i in hand_load_pics:
-		# 		game_display.blit(val[0], (mx, my))
-		# 	for i, j in zip([k for k in hand_load_pics if k != val[0]], [l for l in hand_rects if l != val[1]]):
-		# 		game_display.blit(i, j)
-
-
-		# else:
-		# 	for i, j in zip(hand_load_pics, hand_rects):
-		# 		game_display.blit(i, j)		
+	
 
 		for i, j in zip(hand, xy_coords):	
 			for k in test_group:
@@ -217,6 +195,10 @@ def mainLoop():
 
 	pg.quit()
 	quit()
+
+
+
+# create threads to handle input/output
 
 t2 = threading.Thread(target = startGame)
 
