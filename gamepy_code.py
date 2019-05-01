@@ -3,7 +3,7 @@ import os
 import time
 from card_vars import ranks, suits, card, deck
 import threading
-from thread_test import q, inputFunc	
+from thread_test import q, inputFunc, startGame	
 import queue
 from random import choice
 
@@ -26,6 +26,9 @@ green = (0, 150, 0)
 
 # holds all sprites
 test_group = pg.sprite.Group()
+
+# game state check for user exiting the game
+crashed = False
 
 def findMargin(hand):
 	"""
@@ -85,14 +88,6 @@ def title_screen():
 
 		mx, my = pg.mouse.get_pos()	
 
-		# try:
-		# 	message = q.get(False)		
-		# except queue.Empty:
-		# 	pass
-
-		# if message:
-		# 	return mainLoop()
-
 		rect_drawing1 = pg.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
 
 		for event in pg.event.get():
@@ -100,43 +95,81 @@ def title_screen():
 				crashed = True
 			
 			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
-				return mainLoop()
+				return waitScreen()
 
 		
 		game_title = TextRender('Belote', 115, (display_width / 2), (display_height / 3))
-		# text_font = pg.font.Font('freesansbold.ttf', 115)
-		# TextSurf, TextRect = text_objects('Belote', text_font)
-		# TextRect.center = ((display_width / 2), (display_height / 3))
-		
-		# playText, playRect = text_objects('Play', text_font)
 
 		game_display.blit(game_title.text_surf, game_title.text_rect)
 
 
 		pg.display.update()
 
-	print('about to exit title_screen')
+def waitScreen(): 
+
+	txt = TextRender('Joining game...', 80, display_width/2, display_height/3)
+	to_wait = 0
+
+	msg = ''
+
+	game_display.fill(green)
+	
+	while True:
+		
+		for event in pg.event.get():
+			if event.type == pg.QUIT:
+				break
+
+		try:
+			msg = q.get(False)		
+		except queue.Empty:
+			pass
+
+		if msg == 'start':
+			game_display.blit(txt.text_surf, txt.text_rect)
+
+			now = pg.time.get_ticks()
+			msg = ''
+
+		if pg.time.get_ticks() >= now + to_wait:
+			print(now)
+				
+			return mainLoop()				
+
+		pg.display.update()
 
 def mainLoop():
 
+	crashed = False
 	# Card is clicked
 	clicked = False
 	# Card played
 	played = False
 	# Exit application
-	crashed = False
+	
+
+	game_display.fill(green)
 
 	while not crashed:
 		
-		game_display.fill(green)
-
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()	
+
+		msg = ''
+
+		try:
+			msg = q.get(False)		
+		except queue.Empty:
+			pass
+
+		if msg:
+			return mainLoop()
 
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
 
+			
 			# on left click
 			# for i, j in zip(hand_load_pics, hand_rects):
 			# 	if event.type == pg.MOUSEBUTTONDOWN and j.collidepoint((mx, my)):
@@ -148,8 +181,15 @@ def mainLoop():
 		
 		# rect_drawing = pg.draw.rect(game_display, black, [400, 300, 400, 200], 2)
 
-		for i in west_north_east:
-			game_display.blit(cardback.image, i)
+		for j in range(0, 8):
+			game_display.blit(pg.transform.rotate(cardback.image, 90), (0, int((display_height - 88 - 25*7) / 2 + 25 * j)))
+
+		for j in range(0, 8):
+			game_display.blit(cardback.image, (int((display_width - 88 - 25 * 7) / 2 + 25 * j), 0))
+
+		for j in range(0, 8):
+			game_display.blit(pg.transform.rotate(cardback.image, 90), (display_width - 120, int((display_height - 88 - 25*7) / 2 + 25 * j)))
+
 		# game_display.blit(rand_card, rand_card_rect)
 		
 		# for i in west_north_east:
@@ -166,6 +206,11 @@ def mainLoop():
 		# 	for i, j in zip(hand_load_pics, hand_rects):
 		# 		game_display.blit(i, j)		
 
+		for i, j in zip(hand, xy_coords):	
+			for k in test_group:
+				if i == k.name:
+					game_display.blit(k.image, j)
+
 
 
 		pg.display.update()
@@ -173,15 +218,14 @@ def mainLoop():
 	pg.quit()
 	quit()
 
-# t2 = threading.Thread(target = inputFunc)
-
-# t2.start()
+t2 = threading.Thread(target = startGame)
 
 print('lets go')
+
+t2.start()
 
 if __name__ == "__main__":
 	title_screen()
 
-# t1.start()
-# t2.start()
+
 
