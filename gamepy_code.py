@@ -3,7 +3,7 @@ import os
 import time
 from card_vars import ranks, suits, card, deck
 import threading
-from thread_test import q, inputFunc, startGame	
+from thread_test import q	
 import queue
 from random import choice
 
@@ -55,13 +55,54 @@ class TextRender():
 	def __init__(self, text, size, x=0, y=0):
 
 		self.text, self.size, self.x, self.y = text, size, x, y
-		self.text_font = pg.font.Font('freesansbold.ttf', size)
+		self.text_font = pg.font.SysFont('Arial', size)
 		self.text_surf = pg.font.Font.render(self.text_font, text, False, black)
 		self.text_rect = self.text_surf.get_rect()
-		self.text_rect.center = (x, y)
+		self.text_rect.topleft = (x, y)
+
+	def set_topleft(self, x, y):
+		self.text_rect.topleft = (x, y)
+
+
+class Hand():
+    
+    cards = []
+    
+    def add_(self, x):
+        if isinstance(x, list):
+            self.cards = self.cards + x
+        else:
+            self.cards = self.cards + [x]
+    
+    def pop_(self, x):
+        self.cards.pop(self.cards.index(x))
+        
+    def clear_(self):
+        self.cards = []
+
+    def create_surf(self):
+    	return [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
+
+    def draw_rect(self):
+    	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
+
+    	rects = [surf.get_rect() for surf in self.create_surf()]
+    	for rect, xy in zip(rects, xy_coords):
+    		rect.topleft = xy
+
+    	return rects
+
+    # def set_xy(self):
+    # 	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
+    	
+    # 	# rect = self.draw_rect()
+
+    # 	for rect, xy in zip(self.draw_rect(), xy_coords):
+    # 		rect.topleft = xy
+    # 		print(rect.topleft)
 
 # load card assets
-deck_load = [ImageTest(file) for file in os.listdir()]
+# deck_load = [ImageTest(file) for file in os.listdir()]
  
 cardback_xy = (display_width / 2 + 15, display_height / 2)
 cardback = ImageTest('Francese_retro_Blu.jpg', *cardback_xy)
@@ -71,11 +112,9 @@ cardback = ImageTest('Francese_retro_Blu.jpg', *cardback_xy)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
 
 # test hand 
-hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
+test_hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
 
-# upperleft (x, y) coordinates for each card in hand
-xy_coords = [(findMargin(hand) + (88 + 6) * i, display_height - 120) for i in range(len(hand))]
-print(xy_coords)
+
 
 def title_screen():
 	
@@ -95,7 +134,7 @@ def title_screen():
 				crashed = True
 			
 			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
-				return waitScreen()
+				return pickTrump()
 
 		
 		game_title = TextRender('Belote', 115, (display_width / 2), (display_height / 3))
@@ -130,11 +169,52 @@ def waitScreen():
 
 			now = pg.time.get_ticks()
 			msg = ''
-
-		if pg.time.get_ticks() >= now + to_wait:
-			print(now)
+			if pg.time.get_ticks() >= now + to_wait:
+				print(now)
+				return pickTrump()
 				
-			return mainLoop()				
+		pg.display.update()
+
+def pickTrump():
+
+	txt = TextRender('Play Hearts?', 25)
+	txt.set_topleft((display_width - txt.text_rect.size[0])/2, display_height - 245)
+
+	crashed = False
+
+	hand = Hand()
+	hand.add_(test_hand)
+	hand_surf = hand.create_surf()
+	hand_rect = hand.draw_rect()
+	# hand.set_xy()
+
+	# xy_coords = [(findMargin(hand) + (88 + 6) * i, display_height - 120) for i in range(len(hand))]
+
+	s = pg.Surface((440, 100), pg.SRCALPHA)
+	s.fill((255, 255, 255, 60))
+
+
+	
+	# b_pass = 
+
+	while not crashed:
+		# get mouse x, y coordinates
+		mx, my = pg.mouse.get_pos()	
+
+		game_display.fill(green)
+		pg.draw.rect(s, black, (0, 0, 100, 100))
+
+		for event in pg.event.get():
+			if event.type == pg.QUIT:
+				crashed = True
+
+		for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+			game_display.blit(surf, rect)
+
+		game_display.blit(s, ((display_width - 440)/2, display_height - 250))
+		game_display.blit(txt.text_surf, txt.text_rect)
+
+
 
 		pg.display.update()
 
@@ -153,25 +233,11 @@ def mainLoop():
 	while not crashed:
 		
 		# get mouse x, y coordinates
-		mx, my = pg.mouse.get_pos()	
-
-		msg = ''
-
-		# message handling
-		try:
-			msg = q.get(False)		
-		except queue.Empty:
-			pass
-
-		if 'hand' in message:
-			hand = 
-		elif 
-			
+		mx, my = pg.mouse.get_pos()				
 
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
-
 
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (0, int((display_height - 88 - 25*7) / 2 + 25 * j)))
@@ -182,13 +248,10 @@ def mainLoop():
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (display_width - 120, int((display_height - 88 - 25*7) / 2 + 25 * j)))
 
-	
-
 		for i, j in zip(hand, xy_coords):	
 			for k in test_group:
 				if i == k.name:
 					game_display.blit(k.image, j)
-
 
 
 		pg.display.update()
@@ -200,11 +263,11 @@ def mainLoop():
 
 # create threads to handle input/output
 
-t2 = threading.Thread(target = startGame)
+# t2 = threading.Thread(target = startGame)
 
-print('lets go')
+# print('lets go')
 
-t2.start()
+# t2.start()
 
 if __name__ == "__main__":
 	title_screen()
