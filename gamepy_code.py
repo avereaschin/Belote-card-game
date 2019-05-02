@@ -180,6 +180,9 @@ def pickTrump():
 	txt = TextRender('Play Hearts?', 25)
 	txt.set_topleft((display_width - txt.text_rect.size[0])/2, display_height - 245)
 
+	t_play = TextRender('Play', 20)
+	t_pass = TextRender('Pass', 20)
+
 	crashed = False
 
 	hand = Hand()
@@ -191,9 +194,11 @@ def pickTrump():
 	# xy_coords = [(findMargin(hand) + (88 + 6) * i, display_height - 120) for i in range(len(hand))]
 
 	s = pg.Surface((440, 100), pg.SRCALPHA)
-	s.fill((255, 255, 255, 60))
-
-
+	s.fill((255, 255, 255, 255))
+	# play_b = pg.Surface((150, 33), pg.SRCALPHA)
+	# play_b.fill((255, 255, 255, 80))
+	# pass_b = pg.Surface((150, 33), pg.SRCALPHA)
+	# pass_b.fill((255, 255, 255, 80))
 	
 	# b_pass = 
 
@@ -202,7 +207,8 @@ def pickTrump():
 		mx, my = pg.mouse.get_pos()	
 
 		game_display.fill(green)
-		pg.draw.rect(s, black, (0, 0, 100, 100))
+		play_b = pg.draw.rect(s, black, (30, 40, 150, 33), 1)
+		pass_b = pg.draw.rect(s, black, (440 - 150 - 30, 40, 150, 33), 1)
 
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
@@ -213,7 +219,8 @@ def pickTrump():
 
 		game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 		game_display.blit(txt.text_surf, txt.text_rect)
-
+		# game_display.blit(play_b, ((display_width - 440)/2 + 30, display_height - 250 + 40))
+		# game_display.blit(pass_b, )
 
 
 		pg.display.update()
