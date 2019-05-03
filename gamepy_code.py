@@ -25,10 +25,15 @@ white = (255, 255, 255)
 green = (0, 150, 0)
 
 # holds all sprites
-test_group = pg.sprite.Group()
+suits_group = pg.sprite.Group()
+card_back = pg.sprite.Group()
 
 # game state check for user exiting the game
 crashed = False
+
+def resizeImage(pic, width):
+	height = int(pic.rect.size[1] * width / pic.rect.size[1])
+	return pg.transform.scale(pic.image, (width, height))
 
 def findMargin(hand):
 	"""
@@ -41,13 +46,13 @@ class ImageTest(pg.sprite.Sprite):
 	Creates a sprite by adding an image and creating a rect for it
 	"""
 
-	def __init__(self, pic, x=0, y=0):
-		pg.sprite.Sprite.__init__(self, test_group) 
+	def __init__(self, pic, group, x=0, y=0):
+		pg.sprite.Sprite.__init__(self, group) 
 
 		self.x, self.y = x, y
 		self.image = pg.image.load(pic)
 		split_ = lambda x: x.split('_')
-		self.name = card(Rank='{}'.format(split_(pic)[0]), Suit='{}'.format(split_(pic.split('.')[0])[-1]))
+		self.name = pic.split('_')[1][:-4]
 		self.rect = self.image.get_rect()
 		self.rect.topleft = (x, y)
 
@@ -63,6 +68,8 @@ class TextRender():
 	def set_topleft(self, x, y):
 		self.text_rect.topleft = (x, y)
 
+	def set_center(self, x, y):
+		self.text_rect.center = (x, y)
 
 class Hand():
     
@@ -105,7 +112,7 @@ class Hand():
 # deck_load = [ImageTest(file) for file in os.listdir()]
  
 cardback_xy = (display_width / 2 + 15, display_height / 2)
-cardback = ImageTest('Francese_retro_Blu.jpg', *cardback_xy)
+cardback = ImageTest('Francese_retro_Blu.jpg', card_back, *cardback_xy)
 
 
 # upperleft x, y coords of each player's hand (except your own)
@@ -177,11 +184,37 @@ def waitScreen():
 
 def pickTrump():
 
+
+
+	for img in ['Suit_Hearts.png', 'Suit_Diamonds.png', 'Suit_Clubs.png', 'Suit_Spades.png']:
+		ImageTest(img, suits_group)
+
+	print(suits_group.sprites())
+
+	for img, xy in zip(suits_group, [(8, 0), (58, 0), (116, 0), (174, 0)]):
+		img.image = resizeImage(img, 50)
+		img.rect.topleft = xy
+
+	# load_suits = [pg.image.load(suit) for suit in ['Suit_Hearts.png', 'Suit_Diamonds.png', 'Suit_Clubs.png', 'Suit_Spades.png']]
+	# load_suits = [resizeImage(pic, 50) for pic in load_suits]
+	# suit_rect = [img.get_rect() for img in load_suits]
+
+	# for rect, xy in zip(suit_rect, [(8, 0), (38, 0), (75, 0), (113, 0)]):
+	# 	rect.topleft = xy
+
+
 	txt = TextRender('Play Hearts?', 25)
 	txt.set_topleft((display_width - txt.text_rect.size[0])/2, display_height - 245)
 
+	t_trump2 = TextRender('Pick Trump Suit or Pass', 25)
+	print(t_trump2.text_rect.size)
+
 	t_play = TextRender('Play', 20)
+	t_play.set_topleft(30 + int((150 - 39) / 2), 40 + int((33 - 24) / 2))
+
 	t_pass = TextRender('Pass', 20)
+	t_pass.set_topleft(260 + int((150 - 44) / 2), 40 + int((33 - 24) / 2))
+	print(t_pass.text_rect.size)
 
 	crashed = False
 
@@ -195,10 +228,10 @@ def pickTrump():
 
 	s = pg.Surface((440, 100), pg.SRCALPHA)
 	s.fill((255, 255, 255, 255))
-	# play_b = pg.Surface((150, 33), pg.SRCALPHA)
-	# play_b.fill((255, 255, 255, 80))
-	# pass_b = pg.Surface((150, 33), pg.SRCALPHA)
-	# pass_b.fill((255, 255, 255, 80))
+	play_b = pg.Surface((150, 33), pg.SRCALPHA)
+	play_b.fill((255, 255, 255, 80))
+	pass_b = pg.Surface((150, 33), pg.SRCALPHA)
+	pass_b.fill((255, 255, 255, 80))
 	
 	# b_pass = 
 
@@ -207,8 +240,7 @@ def pickTrump():
 		mx, my = pg.mouse.get_pos()	
 
 		game_display.fill(green)
-		play_b = pg.draw.rect(s, black, (30, 40, 150, 33), 1)
-		pass_b = pg.draw.rect(s, black, (440 - 150 - 30, 40, 150, 33), 1)
+		
 
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
@@ -217,11 +249,24 @@ def pickTrump():
 		for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
 			game_display.blit(surf, rect)
 
-		game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-		game_display.blit(txt.text_surf, txt.text_rect)
-		# game_display.blit(play_b, ((display_width - 440)/2 + 30, display_height - 250 + 40))
-		# game_display.blit(pass_b, )
+		if False:
+			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
+			game_display.blit(txt.text_surf, txt.text_rect)
 
+			play_b = pg.draw.rect(s, black, (30, 40, 150, 33), 1)
+			pass_b = pg.draw.rect(s, black, (440 - 150 - 30, 40, 150, 33), 1)
+			# game_display.blit(play_b, ((display_width - 440)/2 + 30, display_height - 250 + 40))
+			# s.blit(pass_b, (440 - 150, 33))
+			s.blit(t_play.text_surf, t_play.text_rect)
+			s.blit(t_pass.text_surf, t_pass.text_rect)
+
+		game_display.blit(s, ((display_width - 440)/2, display_height - 250))
+
+		# for suit, rect in zip(load_suits, suit_rect):
+		# 	s.blit(suit, rect)
+
+		for suit in suits_group:
+			s.blit(suit.image, suit.rect)
 
 		pg.display.update()
 
@@ -256,7 +301,7 @@ def mainLoop():
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (display_width - 120, int((display_height - 88 - 25*7) / 2 + 25 * j)))
 
 		for i, j in zip(hand, xy_coords):	
-			for k in test_group:
+			for k in suits_group:
 				if i == k.name:
 					game_display.blit(k.image, j)
 
