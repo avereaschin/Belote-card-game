@@ -191,7 +191,7 @@ def pickTrump():
 
 	print(suits_group.sprites())
 
-	for img, xy in zip(suits_group, [(8, 0), (58, 0), (116, 0), (174, 0)]):
+	for img, xy in zip(suits_group, [(8, 37), (58, 37), (116, 37), (174, 37)]):
 		img.image = resizeImage(img, 50)
 		img.rect.topleft = xy
 
@@ -207,6 +207,7 @@ def pickTrump():
 	txt.set_topleft((display_width - txt.text_rect.size[0])/2, display_height - 245)
 
 	t_trump2 = TextRender('Pick Trump Suit or Pass', 25)
+	t_trump2.set_topleft((440 - t_trump2.text_rect.size[0]) / 2, 2)
 	print(t_trump2.text_rect.size)
 
 	t_play = TextRender('Play', 20)
@@ -228,10 +229,10 @@ def pickTrump():
 
 	s = pg.Surface((440, 100), pg.SRCALPHA)
 	s.fill((255, 255, 255, 255))
-	play_b = pg.Surface((150, 33), pg.SRCALPHA)
-	play_b.fill((255, 255, 255, 80))
-	pass_b = pg.Surface((150, 33), pg.SRCALPHA)
-	pass_b.fill((255, 255, 255, 80))
+	# play_b = pg.Surface((150, 33), pg.SRCALPHA)
+	# play_b.fill((255, 255, 255, 80))
+	# pass_b = pg.Surface((150, 33), pg.SRCALPHA)
+	# pass_b.fill((255, 255, 255, 80))
 	
 	# b_pass = 
 
@@ -261,7 +262,11 @@ def pickTrump():
 			s.blit(t_pass.text_surf, t_pass.text_rect)
 
 		game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-
+		s.blit(t_trump2.text_surf, t_trump2.text_rect)
+		
+		pass_b = pg.draw.rect(s, black, (440 - 150 - 30, 40, 150, 33), 1)
+		s.blit(t_pass.text_surf, t_pass.text_rect)
+		
 		# for suit, rect in zip(load_suits, suit_rect):
 		# 	s.blit(suit, rect)
 
