@@ -3,7 +3,7 @@ import os
 import time
 from card_vars import ranks, suits, card, deck
 import threading
-from thread_test import q, gp_q, inputFunc	
+from thread_test import q, gp_q, inputFunc, recFunc
 import queue
 from random import choice
 
@@ -181,6 +181,18 @@ def waitScreen():
 				
 		pg.display.update()
 
+def roundOne(instr=None):
+	"""
+	Round 1 trump suit selection
+	"""
+	return False if instr!='round_1' else True
+
+def roundTwo(instr=None):
+	"""
+	Round 2 trump suit selection
+	"""
+	return False if instr!='round_2' else True
+
 def pickTrump():
 
 	trump = ''
@@ -228,15 +240,15 @@ def pickTrump():
 	crashed = False
 
 	# Game states
-	game_states = {'round_1': True, 'round_2': False, 'pick_trump': False}
-
+	game_state = {'round_1': False, 'round_2': False, 'pick_trump': False, 'o_pass': None, 'o_play': False}
 	
 	while not crashed:
 		
 		# get variables and commands from message queue
 		try:
-			msg = q.get(False)		
-
+			msg = q.get(False)	
+			print(msg)
+			print(msg[0] in list(game_state.keys()))	
 			if msg[0] == 'hand 1':
 				hand.add_(msg[1])
 				msg = ''
@@ -244,15 +256,15 @@ def pickTrump():
 				hand.clear_()
 				hand.add_(msg[1])
 				msg = ''
-			elif:
-				msg[0] == 'rand_trump':
-				rand_trump = Image(msg[1])
-				msg = ''
-			else:
-				pass
- 		except queue.Empty:
+			elif msg[0] == 'rand_card':
+				print(msg, hand.cards)
+				rand_trump = Image(cardToFileName(msg[1]))
+				msg = ''					
+		except queue.Empty:
 			pass
 
+		if msg:
+			game_state[msg[0]] = msg[1]
 
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()	
@@ -273,6 +285,7 @@ def pickTrump():
 					if play_b.collidepoint((mx, my)):
 						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
+						gp_q.put(['play'])
 
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_1'] = False
@@ -298,7 +311,7 @@ def pickTrump():
 			for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
 				game_display.blit(surf, rect)
 
-			game_display.blit()
+			game_display.blit(rand_trump.image, ((display_width - 88) / 2, (display_height - 120) / 2))
 
 		# Round 1 BLIT
 		if game_state['round_1']:
@@ -375,10 +388,10 @@ def mainLoop():
 
 # create threads to handle input/output
 
+
 t2 = threading.Thread(target = inputFunc)
 
 # print('lets go')
-
 t2.start()
 
 if __name__ == "__main__":

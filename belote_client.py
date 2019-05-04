@@ -154,30 +154,30 @@ def receiving():
             #     else:
             #         break
 
-            print('Listening for tricks')
-            while 1:
-                if b'|' in all_data:
-                    to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
-                    message_queue.put(to_analyse)
-                    all_data = all_data[all_data.index(b'|') + 1:]
+            # print('Listening for tricks')
+            # while 1:
+            #     if b'|' in all_data:
+            #         to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
+            #         message_queue.put(to_analyse)
+            #         all_data = all_data[all_data.index(b'|') + 1:]
                      
-                    try:
-                        next_msg = message_queue.get_nowait()
-                        print(next_msg)    
+            #         try:
+            #             next_msg = message_queue.get_nowait()
+            #             print(next_msg)    
              
-                        if isinstance(next_msg, dict):
-                            try:
-                                if next_msg['play_card'] == 1:
-                                    sending('Play a card')
-                                elif next_msg['play_card'] == 2:
-                                    sending('Invalid card. Try again')
-                            except KeyError:
-                                pass
-                    except queue.Empty:
-                         print('Queue empty')
+            #             if isinstance(next_msg, dict):
+            #                 try:
+            #                     if next_msg['play_card'] == 1:
+            #                         sending('Play a card')
+            #                     elif next_msg['play_card'] == 2:
+            #                         sending('Invalid card. Try again')
+            #                 except KeyError:
+            #                     pass
+            #         except queue.Empty:
+            #              print('Queue empty')
                 
-                else:
-                    break
+            #     else:
+            #         break
                                  
                             
 
