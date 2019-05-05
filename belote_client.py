@@ -17,6 +17,7 @@ import select
 import time
 
 q = queue.Queue()
+clnt_q = queue.Queue()
 
     
 def receiving():
@@ -40,10 +41,8 @@ def receiving():
     all_data = b''
     
     while 1:
-
-        time.sleep(1)
         
-        readable, _, _ = select.select([s], [], [])
+        readable, _, _ = select.select([s], [], [], 0)
         
         # check if there is any information to be read from the socket
         # if yes, start receiving data
@@ -67,6 +66,12 @@ def receiving():
                 q.put(to_analyse)
                 print('sent message to gamepy')
 
+        try:
+            next_msg = clnt_q.get(False)
+            print('About to send stuff to gamepy')
+            sending(s, next_msg)
+        except queue.Empty:
+            pass
 
                 # try:
                 #     next_msg = msg_q.get_nowait()
@@ -186,11 +191,9 @@ def receiving():
                                  
                             
 
-def sending(msg):
-    print('i\'m here')
-    message = input(msg)
-    s.send(pickle.dumps(message) + b'|')
-    return None
+def sending(server, msg):
+    server.send(pickle.dumps(msg) + b'|')
+    print('sent msg: ', msg)
 
     
 def main():

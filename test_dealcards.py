@@ -13,7 +13,6 @@ def dealCards(clients):
     """
     Messages are separated by b'|'
     """
-    
     all_data = b''    
     
     # stage 1. deal cards and pick trump suit 
@@ -34,27 +33,29 @@ def dealCards(clients):
         client.sendall(pickle.dumps(['rand_trump', rand_trump]) + b'|')
         print('sent rand_trump')       
     
-    # # players chose whether to play randomly chosen trump suit                   
-    # for client in clients:
-    #     client.sendall(pickle.dumps({'pick_trump': 1}) + b'|')
-    #     print(f'client {client}\'s turn to pick trump')
+    # players chose whether to play randomly chosen trump suit                   
+    for client in clients:
+        client.sendall(pickle.dumps(['round_1', True]) + b'|')
+        print(f'client {client}\'s turn to pick trump')
         
-    #     while 1:
-    #         data = client.recv(1024)
-    #         all_data += data
+        while 1:
+            data = client.recv(1024)
+            all_data += data
             
-    #         if data and b'|' in all_data:
-    #             to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
-    #             print(to_analyse)
-    #             all_data = all_data[all_data.index(b'|') + 1:]
+            if data and b'|' in all_data:
+                to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
+                print(to_analyse)
+                all_data = all_data[all_data.index(b'|') + 1:]
                 
-    #             if to_analyse == 'play' or to_analyse == rand_trump[1]:
-    #                 trump = rand_trump[1]
-    #                 trump_client = client 
-    #                 print(f'{client} picked trump suite: {trump}')
-    #                 for i in clients:
-    #                     i.sendall(pickle.dumps(f'client {client} has picked trump suit {trump}') + b'|')
-    #                     i.sendall(pickle.dumps({'trump': trump}) + b'|')
+                if to_analyse == 'play' or to_analyse == rand_trump[1]:
+                    trump = rand_trump[1]
+                    trump_client = client 
+                    print(f'{client} picked trump suite: {trump}')
+                    for i in clients:
+                        # i.sendall(pickle.dumps(f'client {client} has picked trump suit {trump}') + b'|')
+                        i.sendall(pickle.dumps(['trump', trump]) + b'|')
+            # elif not data:
+            #     s.close()
 
     #                 # if trump suit is picked deal the second round of cards (3 cards to each player)
                     
@@ -76,38 +77,38 @@ def dealCards(clients):
                             
     #                 return tricks(clients, trump, trump_client, client_hand_dict)
     #                 #return declInput(clients, trump, trump_client, client_hand_dict)
-    #             else: 
-    #                 break
+                else: 
+                    break
 
     
-    # # if all players pass on the random trump suit, free for all 
-    # if not trump:
-    #     for client in clients:
-    #         client.send(pickle.dumps({'pick_trump': 2}) + b'|')
-    #         [i.send(pickle.dumps(f'client {client} turn to declare') + b'|') for i in clients if i != client]
-    #         while 1:
-    #             data = client.recv(1024)
-    #             all_data += data
+    # if all players pass on the random trump suit, free for all 
+    if not trump:
+        for client in clients:
+            client.send(pickle.dumps(['round_2', True]) + b'|')
+            # [i.send(pickle.dumps(f'client {client} turn to declare') + b'|') for i in clients if i != client]
+            while 1:
+                data = client.recv(1024)
+                all_data += data
             
-    #             if data and b'|' in all_data:
-    #                 to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
-    #                 print(to_analyse)
-    #                 all_data = all_data[all_data.index(b'|') + 1:]
-    #                 if pickle.loads(data) in suits:
-    #                     trump = pickle.loads(data)
-    #                     trump_client = client
-    #                     for i in clients:
-    #                         i.sendall(pickle.dumps(f'client {client} has picked trump suit {trump}') + b'|')
-    #                         i.sendall(pickle.dumps({'trump': trump}) + b'|')
+                if data and b'|' in all_data:
+                    to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
+                    print(to_analyse)
+                    all_data = all_data[all_data.index(b'|') + 1:]
+                    if pickle.loads(data) in suits:
+                        trump = pickle.loads(data)
+                        trump_client = client
+                        for i in clients:
+                            i.sendall(pickle.dumps(['trump_client', 'you']) + b'|')
+                            i.sendall(pickle.dumps(['trump', trump]) + b'|')
                         
-    #                     break                     
+                        break                     
                     
-    #                 # when all players pass on picking a trump suit deal the cards again. **** Next player needs to deal ****
-    #                 elif client == clients[-1]:
-    #                     return deal_cards(clients)
+                    # when all players pass on picking a trump suit deal the cards again. **** Next player needs to deal ****
+                    elif client == clients[-1]:
+                        return deal_cards(clients)
                                
-    #             else:
-    #                 break
+                else:
+                    break
  
     # second_hand = secondRoundHand()
        
@@ -119,9 +120,8 @@ def dealCards(clients):
     #     client_hand_dict[j] += k
     #     # send the cards to each player
     #     j.send(pickle.dumps({'hand 2': client_hand_dict[j]}) + b'|')
-
-    return None
     #return declInput(clients, trump, trump_client, client_hand_dict)
+
 
 host = ''
 port = 54321
@@ -140,19 +140,25 @@ print('Socket has been bound')
 s.listen(5)
 print('socket is ready')
 
-clients = []
-    
-while 1:
-    conn, addr = s.accept()
-    clients.append(conn)
 
-    # clients[conn] = id(conn)
-    print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
+def main():
     
-    if len(clients) > 0:
-        print('\n****starting session****\n')
+    clients = []
         
-        shuffle(clients) # shuffle players around
-        dealer = choice(clients) # pick the player who will deal the cards
+    while 1:
+        conn, addr = s.accept()
+        clients.append(conn)
+
+        # clients[conn] = id(conn)
+        print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
         
-        dealCards(clients) 
+        if len(clients) > 0:
+            print('\n****starting session****\n')
+            
+            shuffle(clients) # shuffle players around
+            dealer = choice(clients) # pick the player who will deal the cards
+            
+            dealCards(clients) 
+
+if __name__ == '__main__':
+    main()

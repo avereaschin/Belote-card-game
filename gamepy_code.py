@@ -1,9 +1,10 @@
 import pygame as pg
 import os
+import sys
 import time
 from card_vars import ranks, suits, card, deck
 import threading
-from belote_client import q, main
+from belote_client import q, main, clnt_q, sending
 import queue
 from random import choice
 
@@ -55,6 +56,7 @@ class Image():
 		self.name = pic.split('_')[1][:-4]
 		self.rect = self.image.get_rect()
 		self.rect.topleft = (x, y)
+
 
 class TextRender():
 	def __init__(self, text, size, x=0, y=0, color = black):
@@ -111,14 +113,15 @@ class Hand():
 # load card assets
 # deck_load = [ImageTest(file) for file in os.listdir()]
  
-cardback = Image('Francese_retro_Blu.jpg', display_width / 2 + 15, display_height / 2)
+cardback = Image('Francese_retro_Blu.jpg')
+flip_cardback = pg.transform.rotate(cardback.image, 90)
 
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
 
 # test hand 
-test_hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
+# test_hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
 
 
 
@@ -140,7 +143,7 @@ def title_screen():
 				crashed = True
 			
 			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
-				t1 = threading.Thread(target = main)
+				t1 = threading.Thread(target=main, daemon=True)
 				t1.start()
 				return pickTrump()
 
@@ -200,7 +203,6 @@ def pickTrump():
 
 	
 	# t2.start()
-
 	trump = ''
 	msg = ''
 
@@ -236,17 +238,17 @@ def pickTrump():
 	rand_trump = ''
 
 	hand = Hand()
-	hand.add_(test_hand)
-	hand_surf = hand.create_surf()
-	hand_rect = hand.draw_rect()
+	# hand.add_(test_hand)
+	# hand_surf = hand.create_surf()
+	# hand_rect = hand.draw_rect()
 	
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
 
 	crashed = False
 
-	# Game states
-	game_state = {'round_1': False, 'round_2': False, 'pick_trump': False, 'o_pass': None, 'o_play': False}
+	# Game states variables
+	game_state = {'round_1': False, 'round_2': False, 'pick_trump': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
 	
 	while not crashed:
 		
@@ -254,24 +256,27 @@ def pickTrump():
 		try:
 			msg = q.get(False)	
 			print(msg)	
-			if msg[0] == 'hand 1':
+			if msg[0] == 'rand_trump':
+				rand_trump = Image(cardToFileName(msg[1]))
+				rand_trump.name = msg[1]
+			elif msg[0] == 'hand 1':
 				hand.add_(msg[1])
+				hand_surf = hand.create_surf()
+				hand_rect = hand.draw_rect()
 				msg = ''
-				print('hand is: ', hand.cards)
+
 			elif msg[0] == 'hand 2':
 				hand.clear_()
 				hand.add_(msg[1])
 				msg = ''
-			elif msg[0] == 'rand_trump':
-				print(msg, hand.cards)
-				rand_trump = Image(cardToFileName(msg[1]))
-				msg = ''				
-				print('rand_trump is ', rand_trump)	
+
 		except queue.Empty:
 			pass
 
+		# process messages and change game_state vars accordingly
 		if msg:
 			game_state[msg[0]] = msg[1]
+			msg = ''
 
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()	
@@ -283,41 +288,52 @@ def pickTrump():
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
-			
+
 			# on CLICK
 			if event.type == pg.MOUSEBUTTONDOWN:
 				
-				 
-				
-				for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
-					if rect.collidepoint((mx, my)):
-						print('True')
+				# for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+				# 	if rect.collidepoint((mx, my)):
+				# 		print('True')
 
 				# on FIRST ROUND of picking trump
 				if game_state['round_1']:
 					if play_b.collidepoint((mx, my)):
+						clnt_q.put('play')
+						trump = rand_trump.name.Suit
 						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
-						gp_q.put(['play'], False)
 
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_1'] = False
+						clnt_q.put('pass')
 
 				# on SECOND ROUND of picking trump
 				if game_state['round_2']:	
 					for suit, rect in zip(suits_group, suits_rect):
 						if rect.collidepoint((mx, my)):
-							print(files[suits_group.index(suit)])
-							trump = files[suits_group.index(suit)]
+							print(files[suits_group.index(suit)].split('_')[-1][:-4])
+							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
+							clnt_q.put(trump)
 							text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 
 					if pass_b.collidepoint((mx, my)):
-						print('True again')
+						clnt_q.put('pass')
 
 				# for i in hand_rect:
 				# 	if i.collidepoint((mx, my)):
 				# 		print(hand.cards[hand_rect.index(i)])
 				
+
+		# DEFAULT OPPONENT BLIT
+
+		game_display.blit(cardback.image, ((display_width - 88) / 2 + 15, (display_height - 120) / 2))
+
+		# west 
+		game_display.blit(flip_cardback, (0, (display_height - 88) / 2))
+		# north
+		
+		# east
 
 		# DEFAULT BLIT
 		if hand.cards and rand_trump:
@@ -326,6 +342,7 @@ def pickTrump():
 
 			game_display.blit(rand_trump.image, ((display_width - 88) / 2, (display_height - 120) / 2))
 
+		
 		# Round 1 BLIT
 		if game_state['round_1']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
