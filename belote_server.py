@@ -19,8 +19,6 @@ card = namedtuple('card', ['Rank', 'Suit'])
 deck = [card(rank, suit) for rank in ranks for suit in suits]
 
 
-
-
 def checkDeclValidity(declaration):
     """Checks if declaration is made out of card ranks and suits. Returns 1 if all checks passed and None otherwise."""
     

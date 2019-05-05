@@ -3,7 +3,7 @@ import os
 import time
 from card_vars import ranks, suits, card, deck
 import threading
-from thread_test import q, gp_q, inputFunc, recFunc
+from belote_client import q, main
 import queue
 from random import choice
 
@@ -140,6 +140,8 @@ def title_screen():
 				crashed = True
 			
 			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
+				t1 = threading.Thread(target = main)
+				t1.start()
 				return pickTrump()
 
 		
@@ -193,7 +195,11 @@ def roundTwo(instr=None):
 	"""
 	return False if instr!='round_2' else True
 
+
 def pickTrump():
+
+	
+	# t2.start()
 
 	trump = ''
 	msg = ''
@@ -247,19 +253,20 @@ def pickTrump():
 		# get variables and commands from message queue
 		try:
 			msg = q.get(False)	
-			print(msg)
-			print(msg[0] in list(game_state.keys()))	
+			print(msg)	
 			if msg[0] == 'hand 1':
 				hand.add_(msg[1])
 				msg = ''
+				print('hand is: ', hand.cards)
 			elif msg[0] == 'hand 2':
 				hand.clear_()
 				hand.add_(msg[1])
 				msg = ''
-			elif msg[0] == 'rand_card':
+			elif msg[0] == 'rand_trump':
 				print(msg, hand.cards)
 				rand_trump = Image(cardToFileName(msg[1]))
-				msg = ''					
+				msg = ''				
+				print('rand_trump is ', rand_trump)	
 		except queue.Empty:
 			pass
 
@@ -280,12 +287,18 @@ def pickTrump():
 			# on CLICK
 			if event.type == pg.MOUSEBUTTONDOWN:
 				
-				# on FIRST ROUND of picking trump 
+				 
+				
+				for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+					if rect.collidepoint((mx, my)):
+						print('True')
+
+				# on FIRST ROUND of picking trump
 				if game_state['round_1']:
 					if play_b.collidepoint((mx, my)):
 						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
-						gp_q.put(['play'])
+						gp_q.put(['play'], False)
 
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_1'] = False
@@ -389,13 +402,10 @@ def mainLoop():
 # create threads to handle input/output
 
 
-t2 = threading.Thread(target = inputFunc)
 
 # print('lets go')
-t2.start()
 
-if __name__ == "__main__":
-	title_screen()
+title_screen()
 
 
 

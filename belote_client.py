@@ -14,30 +14,34 @@ import threading
 import re
 import queue
 import select
+import time
 
+q = queue.Queue()
 
-host = 'localhost'
-port = 54321
-
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-print('Socket created')
-
-try:
-    s.connect((host, port))
-except socket.error:
-    print('couldn\'t connect')
-    sys.exit()
-    
-
-# server messages to be placed in a queue for processing    
-message_queue = queue.Queue()
     
 def receiving():
-    
+
+    host = 'localhost'
+    port = 54321
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print('Socket created')
+
+    try:
+        s.connect((host, port))
+    except socket.error:
+        print('couldn\'t connect')
+        sys.exit()
+        
+
+    # server messages to be placed in a queue for processing    
+
     trump = ''
     all_data = b''
     
     while 1:
+
+        time.sleep(1)
         
         readable, _, _ = select.select([s], [], [])
         
@@ -53,78 +57,79 @@ def receiving():
             # separator are left in all_data unitl the next message separator 
             # is received
             all_data += data
-            
-            while not trump: 
-                # loops until trump suit is picked 
-                # loops until message separator b'|' is found
-                # separate messages by b'|' and dump them into queue for processing
+                           
                 
-                
-                if b'|' in all_data:
-                    to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
-                    # dump all messages into a queue
-                    message_queue.put(to_analyse)
-                    all_data = all_data[all_data.index(b'|') + 1:]
-                    
-                    try:
-                        next_msg = message_queue.get_nowait()
-                        print(next_msg)
-                        
-                        if isinstance(next_msg, dict):
-                            try:
-                                if next_msg['hand 1']:
-                                    hand = next_msg['hand 1']
-                                    print(f'your hand is:\n{hand}')
-                                    continue
-                            except KeyError:
-                                pass
+            if b'|' in all_data:
+                to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
+                # dump all messages into a queue
+                all_data = all_data[all_data.index(b'|') + 1:]
 
-                            try:
-                                if next_msg['hand 2']:
-                                    hand += hand_msg['hand 2']
-                                    print(f'your hand is:\n{hand}')
-                                    continue
-                            except KeyError:
-                                pass
+                q.put(to_analyse)
+                print('sent message to gamepy')
+
+
+                # try:
+                #     next_msg = msg_q.get_nowait()
+                #     print('got message: ', next_msg)
+                #     q.put(next_msg, False)
+                # except queue.Empty:
+                #     pass
+                        
+                    #     if isinstance(next_msg, dict):
+                    #         try:
+                    #             if next_msg['hand 1']:
+                    #                 hand = next_msg['hand 1']
+                    #                 print(f'your hand is:\n{hand}')
+                    #                 continue
+                    #         except KeyError:
+                    #             pass
+
+                    #         try:
+                    #             if next_msg['hand 2']:
+                    #                 hand += hand_msg['hand 2']
+                    #                 print(f'your hand is:\n{hand}')
+                    #                 continue
+                    #         except KeyError:
+                    #             pass
                             
-                            try:
+                    #         try:
                                 
-                                if next_msg['rand_trump']:
-                                    rand_trump = next_msg['rand_trump']
-                                    print(f'randomly chosen trump suit is {rand_trump}')
-                                    continue
-                            except KeyError:
-                                pass
+                    #             if next_msg['rand_trump']:
+                    #                 rand_trump = next_msg['rand_trump']
+                    #                 print(f'randomly chosen trump suit is {rand_trump}')
+                    #                 continue
+                    #         except KeyError:
+                    #             pass
                                 
-                            try:
+                    #         try:
                                 
-                                if next_msg['pick_trump'] == 1:
-                                    sending(f'Would you like to play {rand_trump}?')
-                                    continue
-                            except KeyError:
-                                pass
+                    #             if next_msg['pick_trump'] == 1:
+                    #                 sending(f'Would you like to play {rand_trump}?')
+                    #                 continue
+                    #         except KeyError:
+                    #             pass
                                
-                            try:
-                                if next_msg['pick_trump'] == 2:
-                                    sending(f'FFA Which suit would you like to play?')
-                                    continue
-                            except KeyError:
-                                pass
+                    #         try:
+                    #             if next_msg['pick_trump'] == 2:
+                    #                 sending(f'FFA Which suit would you like to play?')
+                    #                 continue
+                    #         except KeyError:
+                    #             pass
                             
-                            try:
-                                if next_msg['trump']:
-                                    trump = next_msg['trump']
-                                    print(f'trump suit is {trump}')    
-                            except KeyError:
-                                pass
+                    #         try:
+                    #             if next_msg['trump']:
+                    #                 trump = next_msg['trump']
+                    #                 print(f'trump suit is {trump}')    
+                    #         except KeyError:
+                    #             pass
                             
-                    except queue.Empty:
-                        print('Queue empty')
+                    # except queue.Empty:
+                    #     print('Queue empty')
                          
 
-                else:
-                    print('Found trump. Breaking out of this loop into the next')
-                    break
+                # else:
+                #     print('Found trump. Breaking out of this loop into the next')
+                #     break
 
                 
             # print('Listening for declarations')
@@ -190,6 +195,3 @@ def sending(msg):
     
 def main():
     threading.Thread(target=receiving).start()
-         
-            
-main()
