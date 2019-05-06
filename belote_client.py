@@ -63,8 +63,9 @@ def receiving():
                 # dump all messages into a queue
                 all_data = all_data[all_data.index(b'|') + 1:]
 
+                print(to_analyse)
                 q.put(to_analyse)
-                print('sent message to gamepy')
+                
 
         try:
             next_msg = clnt_q.get(False)

@@ -37,6 +37,7 @@ def dealCards(clients):
     for client in clients:
         client.sendall(pickle.dumps(['round_1', True]) + b'|')
         print(f'client {client}\'s turn to pick trump')
+        print('sent round_1')
         
         while 1:
             data = client.recv(1024)

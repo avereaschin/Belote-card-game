@@ -44,6 +44,19 @@ def findMargin(hand):
 def cardToFileName(card):
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
+class Score():
+	"""
+	Keeps track of player scores
+	"""
+	score_dict = {'you': 0, 'west': 0, 'north': 0, 'east': 0}
+
+	def add_(self, player, points):
+		self.score_dict[player] = points
+		
+	def clear_(self):
+		for key in list(self.score_dict.keys()):
+			score_dict[key] = 0
+
 class Image():
 	"""
 	Creates a sprite by adding an image and creating a rect for it
@@ -143,8 +156,6 @@ def title_screen():
 				crashed = True
 			
 			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
-				t1 = threading.Thread(target=main, daemon=True)
-				t1.start()
 				return pickTrump()
 
 		
@@ -169,7 +180,6 @@ def waitScreen():
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				break
-
 		try:
 			msg = q.get(False)		
 		except queue.Empty:
@@ -201,6 +211,8 @@ def roundTwo(instr=None):
 
 def pickTrump():
 
+	t1 = threading.Thread(target=main, daemon=True)
+	t1.start()
 	
 	# t2.start()
 	trump = ''
@@ -231,9 +243,13 @@ def pickTrump():
 	text_dict = {'txt': TextRender('Play Hearts?', 25),
 				't_trump2': TextRender('Pick Trump Suit or Pass', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 472),
 				't_play': TextRender('Play', 20, 30 + int((150 - 39) / 2), 40 + int((33 - 24) / 2)),
-				't_pass': TextRender('Pass', 20, 420 + 260 + int((150 - 44) / 2), 470 + 40 + int((33 - 24) / 2))
-	}
+				't_pass': TextRender('Pass', 20, 420 + 260 + int((150 - 44) / 2), 470 + 40 + int((33 - 24) / 2)),
+				'score_w': TextRender('West: 0\nEast: 0\nNorth:0', 15, 0, 0)
+				}
 
+	print(text_dict['score_w'].text_rect.size)
+
+	text_dict['score_w'].text = 'ahahah'
 	# Important variables
 	rand_trump = ''
 
@@ -244,6 +260,9 @@ def pickTrump():
 	
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
+
+	score_scr = pg.Surface((125, 150), pg.SRCALPHA)
+	score_scr.fill((255, 255, 255, 50))
 
 	crashed = False
 
@@ -276,7 +295,7 @@ def pickTrump():
 		# process messages and change game_state vars accordingly
 		if msg:
 			game_state[msg[0]] = msg[1]
-			msg = ''
+
 
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()	
@@ -325,15 +344,29 @@ def pickTrump():
 				# 		print(hand.cards[hand_rect.index(i)])
 				
 
+		# DEFAULT SCORE SCREEN
+		game_display.blit(score_scr, (0, display_height - 150))
+		
+		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0))
+		for i, player, score in zip([0, 1, 2, 3], ['you', 'west', 'north', 'east'], [0, 0, 0, 0]):
+			score_scr.blit(TextRender(f'{player}: {score}', 15).text_surf, (0, 20 + (12 + 4) * i))
+
+
+
 		# DEFAULT OPPONENT BLIT
 
 		game_display.blit(cardback.image, ((display_width - 88) / 2 + 15, (display_height - 120) / 2))
 
 		# west 
-		game_display.blit(flip_cardback, (0, (display_height - 88) / 2))
+		for i in range(8):
+			game_display.blit(flip_cardback, (0, (display_height - 88 - 20 * 8) / 2 + 20 * i))
 		# north
-		
+		for i in range(8):
+			game_display.blit(cardback.image, ((display_width - 88 - 20 * 8) / 2 + 20 * i, 0))
+
 		# east
+		for i in range(8):
+			game_display.blit(flip_cardback, (display_width - 120, (display_height - 88 - 20 * 8) / 2 + 20 * i))
 
 		# DEFAULT BLIT
 		if hand.cards and rand_trump:
@@ -421,6 +454,8 @@ def mainLoop():
 
 
 # print('lets go')
+
+
 
 title_screen()
 
