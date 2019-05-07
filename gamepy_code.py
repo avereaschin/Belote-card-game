@@ -114,29 +114,12 @@ class Hand():
 
     	return rects
 
-    # def set_xy(self):
-    # 	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
-    	
-    # 	# rect = self.draw_rect()
-
-    # 	for rect, xy in zip(self.draw_rect(), xy_coords):
-    # 		rect.topleft = xy
-    # 		print(rect.topleft)
-
-# load card assets
-# deck_load = [ImageTest(file) for file in os.listdir()]
- 
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
 
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
-
-# test hand 
-# test_hand = [card(Rank='A', Suit='Clubs'), card(Rank='J', Suit='Hearts'), card(Rank='7', Suit='Spades'), card(Rank='8', Suit='Clubs'), card(Rank='10', Suit='Diamonds')]
-
-
 
 def title_screen():
 	
@@ -196,19 +179,6 @@ def waitScreen():
 				
 		pg.display.update()
 
-def roundOne(instr=None):
-	"""
-	Round 1 trump suit selection
-	"""
-	return False if instr!='round_1' else True
-
-def roundTwo(instr=None):
-	"""
-	Round 2 trump suit selection
-	"""
-	return False if instr!='round_2' else True
-
-
 def pickTrump():
 
 	t1 = threading.Thread(target=main, daemon=True)
@@ -261,7 +231,7 @@ def pickTrump():
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
 
-	score_scr = pg.Surface((125, 150), pg.SRCALPHA)
+	score_scr = pg.Surface((125, 100), pg.SRCALPHA)
 	score_scr.fill((255, 255, 255, 50))
 
 	crashed = False
@@ -338,19 +308,20 @@ def pickTrump():
 
 					if pass_b.collidepoint((mx, my)):
 						clnt_q.put('pass')
+						game_state['round_2'] = False
 
 				# for i in hand_rect:
 				# 	if i.collidepoint((mx, my)):
 				# 		print(hand.cards[hand_rect.index(i)])
 				
 
-		# DEFAULT SCORE SCREEN
-		game_display.blit(score_scr, (0, display_height - 150))
+		# DEFAULT SCORE BOARD
+		game_display.blit(score_scr, (0, display_height - 100)) # width, height = (125, 100)
 		
-		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0))
+		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
+		
 		for i, player, score in zip([0, 1, 2, 3], ['you', 'west', 'north', 'east'], [0, 0, 0, 0]):
 			score_scr.blit(TextRender(f'{player}: {score}', 15).text_surf, (0, 20 + (12 + 4) * i))
-
 
 
 		# DEFAULT OPPONENT BLIT
