@@ -43,16 +43,28 @@ def findMargin(hand):
 def cardToFileName(card):
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
+
+class Card():
+
+	card = ''
+	surf_ = ''
+
+	def add_(self, card_to_add):
+		self.card = card_to_add
+
+	def create_surf(self):
+		self.surf_ = pg.image.load(cardToFileName(self.card))
+
 class Players():
 
 	list_ = []
 	dict_ = {}
 
 	def add_(self, players):
-		self.list += players
+		self.list_ += players
 
 	def sort_(self):
-		order = self.list_[self.list_.index('you') + 1:] + self.list[:self.list_.index('you')]  
+		order = self.list_[self.list_.index('you') + 1:] + self.list_[:self.list_.index('you')]  
 		self.dict_ = {k:v for k, v in zip(order, ['west', 'north', 'east'])}
 
 	def clear_(self):
@@ -105,8 +117,7 @@ class TextRender():
 class Hand():
     
     cards = []
-    surf_ = None
-    rect_ = None
+    
     
     def add_(self, x):
         if isinstance(x, list):
@@ -123,7 +134,7 @@ class Hand():
         self.rect_ = None
 
     def create_surf(self):
-    	self.surf_ = [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
+    	return [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
 
     def draw_rect(self):
     	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
@@ -132,7 +143,7 @@ class Hand():
     	for rect, xy in zip(rects, xy_coords):
     		rect.topleft = xy
 
-    	self.rect_ = rects
+    	return rects
 
 class Wait():
 
@@ -163,8 +174,13 @@ flip_cardback = pg.transform.rotate(cardback.image, 90)
 # time.sleep substitute to be used in animations
 sleep_ = Wait()
 
+rand_trump = Card()
+
 # holds YOUR cards
 hand = Hand()
+
+# holds order in which players play cards
+players = Players()
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
@@ -235,7 +251,6 @@ def pickTrump():
 	# t2.start()
 	trump = ''
 	msg = ''
-	rand_trump = ''
 
 	# Suit images
 	files = ['Suit_Hearts.png', 'Suit_Diamonds.png', 'Suit_Clubs.png', 'Suit_Spades.png']
@@ -288,10 +303,12 @@ def pickTrump():
 	crashed = False
 
 	# Game states variables
-	game_state = {'clients': None, 'round_1': True, 'round_2': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
+	game_state = {'clients': None, 'round_1': False, 'round_2': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
 	
-	instructions = {'rand_trump': [Image(cardToFileName(msg[1]))],
-					'hand 1': [hand.add(msg[1]), hand_surf]}
+	vars_ = {'hand 1': [(hand.add_, 1), (hand.create_surf, 0), (hand.draw_rect, 0)],
+			'hand 2': [(hand.clear_, 0), (hand.add_, 1)],
+			'clients': [(players.add_, 1), (players.sort_, 0)],
+			'rand_trump': [(rand_trump.add_, 1), (rand_trump.create_surf, 0)]}
 
 	while not crashed:
 		
@@ -299,27 +316,39 @@ def pickTrump():
 		try:
 			msg = q.get(False)	
 			print(msg)	
-			if msg[0] == 
+			# if msg[0] == 'rand_trump':
+			# 	rand_trump = Image(cardToFileName(msg[1]))
+			# elif msg[0] == 'hand 1':
+			# 	hand.add_(msg[1])
+			# 	hand_surf = hand.create_surf()
+			# 	hand_rect = hand.draw_rect()
+			# 	msg = ''
 
-			elif msg[0] == 'rand_trump':
-				rand_trump = Image(cardToFileName(msg[1]))
-			elif msg[0] == 'hand 1':
-				hand.add_(msg[1])
-				hand_surf = hand.create_surf()
-				hand_rect = hand.draw_rect()
-				msg = ''
-
-			elif msg[0] == 'hand 2':
-				hand.clear_()
-				hand.add_(msg[1])
-				msg = ''
+			# elif msg[0] == 'hand 2':
+			# 	hand.clear_()
+			# 	hand.add_(msg[1])
+			# 	msg = ''
 
 		except queue.Empty:
 			pass
 
-		# process messages and change game_state vars accordingly
+		
+		# process messages and changes game_state vars_ accordingly
 		if msg:
-			game_state[msg[0]] = msg[1]
+			# check if message is an instruction to change a variable
+			if msg[0] in list(vars_.keys()):
+				for instr in vars_[msg[0]]:
+					# check if instruction needs to be called with an argument
+					if instr[1]:
+						instr[0](msg[1])
+					# else call instruction without argument
+					else:
+						instr[0]()
+			# else message is an instruction to change a game state value
+			else:
+				game_state[msg[0]] = msg[1]
+
+			msg = ''
 
 
 		# get mouse x, y coordinates
@@ -345,8 +374,7 @@ def pickTrump():
 					# if clicked play
 					if play_b.collidepoint((mx, my)):
 						clnt_q.put('play')
-						print(game_state['rand_trump'])
-						trump = game_state['rand_trump'].Suit
+						trump = rand_trump.card.Suit
 						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
 						game_state['round_1'] = False
@@ -384,11 +412,11 @@ def pickTrump():
 		for i, player, score in zip([0, 1, 2, 3], ['you', 'west', 'north', 'east'], [0, 0, 0, 0]):
 			score_scr.blit(TextRender(f'{player}: {score}', 15).text_surf, (0, 20 + (12 + 4) * i))
 
-		# 
+		# CARD BACK AND TRUMP BLIT (IF TRUMP HASN'T BEEN PICKED)
 		if not game_state['trump']:
 			game_display.blit(cardback.image, ((display_width - 88) / 2 + 15, (display_height - 120) / 2))
-			if rand_trump:	
-				game_display.blit(rand_trump.image, ((display_width - 88) / 2, (display_height - 120) / 2))
+			if rand_trump.card:	
+				game_display.blit(rand_trump.surf_, ((display_width - 88) / 2, (display_height - 120) / 2))
 
 
 		# DEFAULT OPPONENT BLIT
@@ -407,11 +435,11 @@ def pickTrump():
 		
 		# DEFAULT YOUR CARDS BLIT 
 		if hand.cards:
-			for surf, rect in zip(hand.surf_, hand.rect_):
+			for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
 				game_display.blit(surf, rect)
 
 			
-		# Round 1 BLIT
+		# ROUND 1 BLIT
 		if game_state['round_1']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			game_display.blit(txt.text_surf, txt.text_rect)
@@ -421,8 +449,7 @@ def pickTrump():
 			game_display.blit(t_play.text_surf, t_play.text_rect)
 			game_display.blit(t_pass.text_surf, t_pass.text_rect)
 
-		# Round 2 BLIT 
-		
+		# ROUND 2 BLIT 
 		if game_state['round_2']:	
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			game_display.blit(t_trump2.text_surf, t_trump2.text_rect)
@@ -434,14 +461,14 @@ def pickTrump():
 			for suit, rect in zip(suits_group, suits_rect):
 				game_display.blit(suit, rect)
 		
-		# if YOU picked trump suit
+		# IF YOU PICKED TRUMP SUIT
 		if game_state['pick_trump']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			game_display.blit(text_dict['played_trump'].text_surf, text_dict['played_trump'].text_rect)
 			if sleep_.wait_(1500):
 				game_state['pick_trump'] = False
 
-		# if YOU passed
+		# IF YOU PASSED
 		if game_state['passed']:
 			game_display.blit(TextRender('Passed', 25).text_surf, (display_width / 2, 470))
 			if sleep_.wait_(1500):

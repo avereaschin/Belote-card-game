@@ -27,7 +27,7 @@ def dealCards(clients):
     client_hand_dict = {}
     
     for client in clients:
-        [f'player {j + 1}' if i != aloha else 'you' for i, j in zip(clients, range(0, 4))]
+        client.send(pickle.dumps(['clients', [f'player {i}' if j != client else 'you' for i, j in enumerate(clients, 1)]]) + b'|')
 
     for client, hand in zip(clients, first_hand):
         client_hand_dict[client] = hand
