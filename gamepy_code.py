@@ -1,7 +1,6 @@
 import pygame as pg
 import os
 import sys
-import time
 from card_vars import ranks, suits, card, deck
 import threading
 from belote_client import q, main, clnt_q, sending
@@ -29,6 +28,9 @@ card_back = pg.sprite.Group()
 
 # game state check for user exiting the game
 crashed = False
+
+def plyConvert(player):
+	return players.dict_[player]
 
 def resizeImage(pic, width):
 	height = int(pic.get_rect().size[1] * width / pic.get_rect().size[1])
@@ -65,7 +67,7 @@ class Players():
 
 	def sort_(self):
 		order = self.list_[self.list_.index('you') + 1:] + self.list_[:self.list_.index('you')]  
-		self.dict_ = {k:v for k, v in zip(order, ['west', 'north', 'east'])}
+		self.dict_ = {k:v for k, v in zip(order, ['West', 'North', 'East'])}
 
 	def clear_(self):
 		self.list_ = []
@@ -166,7 +168,8 @@ class Wait():
 		else:
 			return False		
 
-
+print('West size', TextRender('West', 25).text_rect.size)
+print('North size', TextRender('North', 25).text_rect.size)
 
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
@@ -184,6 +187,9 @@ players = Players()
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
+
+# during opponents turn this *thinking* cloud will appear above his name indicating he's thinking of a move
+think_cloud = pg.transform.scale(pg.image.load('thought_bubble.png'), (50, 50))
 
 def title_screen():
 	
@@ -288,11 +294,6 @@ def pickTrump():
 	# Important variables
 
 	print(TextRender('Passed', 25).size)
-
-	
-	# hand.add_(test_hand)
-	# hand_surf = hand.create_surf()
-	# hand_rect = hand.draw_rect()
 	
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
@@ -302,36 +303,29 @@ def pickTrump():
 
 	crashed = False
 
-	# Game states variables
+	# Game states (changed accoording to instructions given by server)
 	game_state = {'clients': None, 'round_1': False, 'round_2': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
 	
+	# Key variables (changed accoording to instructions given by server)
 	vars_ = {'hand 1': [(hand.add_, 1), (hand.create_surf, 0), (hand.draw_rect, 0)],
 			'hand 2': [(hand.clear_, 0), (hand.add_, 1)],
 			'clients': [(players.add_, 1), (players.sort_, 0)],
 			'rand_trump': [(rand_trump.add_, 1), (rand_trump.create_surf, 0)]}
+
+	print('size 5 letters is: ', TextRender('North', 25).text_rect.size)
+	print('size 4 letters is: ', TextRender('East', 25).text_rect.size)
+	print('size 1 letter is: ', TextRender('E', 25).text_rect.size)
+	print('size 1 small letter: ', TextRender('e', 25).text_rect.size)
+	print('size 2 small letters: ', TextRender('ea', 25).text_rect.size)
+	print('size 4 small letters: ', TextRender('east', 25).text_rect.size)
 
 	while not crashed:
 		
 		# get variables and commands from message queue
 		try:
 			msg = q.get(False)	
-			print(msg)	
-			# if msg[0] == 'rand_trump':
-			# 	rand_trump = Image(cardToFileName(msg[1]))
-			# elif msg[0] == 'hand 1':
-			# 	hand.add_(msg[1])
-			# 	hand_surf = hand.create_surf()
-			# 	hand_rect = hand.draw_rect()
-			# 	msg = ''
-
-			# elif msg[0] == 'hand 2':
-			# 	hand.clear_()
-			# 	hand.add_(msg[1])
-			# 	msg = ''
-
 		except queue.Empty:
 			pass
-
 		
 		# process messages and changes game_state vars_ accordingly
 		if msg:
@@ -348,6 +342,7 @@ def pickTrump():
 			else:
 				game_state[msg[0]] = msg[1]
 
+			# clear msg variable 
 			msg = ''
 
 
@@ -402,7 +397,6 @@ def pickTrump():
 				# for i in hand_rect:
 				# 	if i.collidepoint((mx, my)):
 				# 		print(hand.cards[hand_rect.index(i)])
-				
 
 		# DEFAULT SCORE BOARD
 		game_display.blit(score_scr, (0, display_height - 100)) # width, height = (125, 100)
@@ -422,13 +416,19 @@ def pickTrump():
 		# DEFAULT OPPONENT BLIT
 
 		# west 
+		game_display.blit(TextRender('West', 20).text_surf, (0, display_height / 2 - 154))
+		
 		for i in range(8):
 			game_display.blit(flip_cardback, (0, (display_height - 88 - 20 * 8) / 2 + 20 * i))
 		# north
+		game_display.blit(TextRender('North', 20).text_surf, ((display_width - 88 - 20 * 8) / 2 - 60, (120 - 20) / 2))
+		
 		for i in range(8):
 			game_display.blit(cardback.image, ((display_width - 88 - 20 * 8) / 2 + 20 * i, 0))
 
 		# east
+		game_display.blit(TextRender('East', 20).text_surf, (display_width - 120, display_height / 2 - 154))
+
 		for i in range(8):
 			game_display.blit(flip_cardback, (display_width - 120, (display_height - 88 - 20 * 8) / 2 + 20 * i))
 
@@ -473,10 +473,61 @@ def pickTrump():
 			game_display.blit(TextRender('Passed', 25).text_surf, (display_width / 2, 470))
 			if sleep_.wait_(1500):
 				game_state['passed'] = False
+
+		# IF OPPONENT PASSED
+		if game_state['o_pass']:
+			game_display.blit(TextRender(f'{plyConvert(game_state["o_pass"])} passed', 25).text_surf, (display_width / 2, 470))
+			if sleep_.wait_(1500):
+				game_state['o_pass'] = False
 				
 		pg.display.update()
 
-def mainLoop():
+def declarations():
+
+	crashed = False	
+
+	# background 
+	game_display.fill(green)
+
+	while not crashed:
+		
+		# get mouse x, y coordinates
+		mx, my = pg.mouse.get_pos()
+
+		# EVENT LOOP
+		for event in pg.event.get():
+			if event.type == pg.QUIT:
+				crashed = True
+
+		# DEFAULT OPPONENT BLIT
+
+		# west 
+		game_display.blit(TextRender('West', 20).text_surf, (0, display_height / 2 - 154))
+		
+		for i in range(8):
+			game_display.blit(flip_cardback, (0, (display_height - 88 - 20 * 8) / 2 + 20 * i))
+		# north
+		game_display.blit(TextRender('North', 20).text_surf, ((display_width - 88 - 20 * 8) / 2 - 60, (120 - 20) / 2))
+		
+		for i in range(8):
+			game_display.blit(cardback.image, ((display_width - 88 - 20 * 8) / 2 + 20 * i, 0))
+
+		# east
+		game_display.blit(TextRender('East', 20).text_surf, (display_width - 120, display_height / 2 - 154))
+
+		for i in range(8):
+			game_display.blit(flip_cardback, (display_width - 120, (display_height - 88 - 20 * 8) / 2 + 20 * i))
+
+		# DEFAULT YOUR CARDS BLIT 
+		
+		for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+			game_display.blit(surf, rect)
+
+
+
+
+
+def tricks():
 
 	crashed = False
 	# Card is clicked
@@ -516,14 +567,6 @@ def mainLoop():
 
 	pg.quit()
 	quit()
-
-
-
-# create threads to handle input/output
-
-
-
-# print('lets go')
 
 
 

@@ -22,7 +22,7 @@ def dealCards(clients):
     rand_trump = card(Rank='A', Suit='Hearts')
     print(f'rand_trump is {rand_trump}')
        
-    first_hand = [[card(Rank='7', Suit='Hearts'), card(Rank='8', Suit='Hearts')]]
+    first_hand = [[card(Rank='7', Suit='Hearts'), card(Rank='8', Suit='Hearts')], [card(Rank='7', Suit='Clubs'), card(Rank='8', Suit='Clubs')]]
     
     client_hand_dict = {}
     
@@ -51,7 +51,7 @@ def dealCards(clients):
                 print(to_analyse)
                 all_data = all_data[all_data.index(b'|') + 1:]
                 
-                if to_analyse == 'play' or to_analyse == rand_trump[1]:
+                if to_analyse == 'play':
                     trump = rand_trump[1]
                     trump_client = client 
                     print(f'{client} picked trump suite: {trump}')
@@ -76,16 +76,17 @@ def dealCards(clients):
                     print('send hand 2')
                     
                       
-                    # for j, k in zip([l for l in clients if l != client], second_hand[0]):
-                    #     client_hand_dict[j] += k
-                    #     # send the cards to each player
-                    #     j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
+                    for j, k in zip([l for l in clients if l != client], second_hand[0]):
+                        client_hand_dict[j] += k
+                        # send the cards to each player
+                        j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
                             
                     # return tricks(clients, trump, trump_client, client_hand_dict)
-                    #return declInput(clients, trump, trump_client, client_hand_dict)
+                    # return declInput(clients, trump, trump_client, client_hand_dict)
                 else:
                     for i in [j for j in clients if j != client]:
-                        i.send(pickle.dumps(['o_pass', 'other guy']))
+                        i.send(pickle.dumps(['o_pass', players[client]]))
+                        print('sent o_pass to: ', players[client])
                     break
 
     
@@ -149,24 +150,26 @@ s.listen(5)
 print('socket is ready')
 
 
-def main():
+# def main():
     
-    clients = []
-        
-    while 1:
-        conn, addr = s.accept()
-        clients.append(conn)
+clients = []
+    
+while 1:
+    conn, addr = s.accept()
+    clients.append(conn)
 
-        # clients[conn] = id(conn)
-        print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
+    # clients[conn] = id(conn)
+    print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
+    
+    if len(clients) > 1:
+        print('\n****starting session****\n')
         
-        if len(clients) > 0:
-            print('\n****starting session****\n')
-            
-            shuffle(clients) # shuffle players around
-            dealer = clients[0] # pick the player who will deal the cards
-            
-            dealCards(clients) 
+        shuffle(clients) # shuffle players around
+        dealer = clients[0] # pick the player who will deal the cards
 
-if __name__ == '__main__':
-    main()
+        players = {j: f'player {i}' for i, j in enumerate(clients, 1)}
+        
+        dealCards(clients) 
+
+# if __name__ == '__main__':
+#     main()
