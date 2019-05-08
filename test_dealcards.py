@@ -26,6 +26,9 @@ def dealCards(clients):
     
     client_hand_dict = {}
     
+    for client in clients:
+        [f'player {j + 1}' if i != aloha else 'you' for i, j in zip(clients, range(0, 4))]
+
     for client, hand in zip(clients, first_hand):
         client_hand_dict[client] = hand
         client.sendall(pickle.dumps(['hand 1', hand]) + b'|')
@@ -58,27 +61,31 @@ def dealCards(clients):
             # elif not data:
             #     s.close()
 
-    #                 # if trump suit is picked deal the second round of cards (3 cards to each player)
+                    # if trump suit is picked deal the second round of cards (3 cards to each player)
                     
-    #                 #second_hand = secondRoundHand()
+                    #second_hand = secondRoundHand()
                     
-    #                 secondee = [[card(Rank='Q', Suit='Diamonds'), card(Rank='K', Suit='Diamonds'), card(Rank='A', Suit='Diamonds')],
-    #                            [card(Rank='Q', Suit='Spades'), card(Rank='K', Suit='Spades'), card(Rank='A', Suit='Spades')],
-    #                            [card(Rank='Q', Suit='Clubs'), card(Rank='K', Suit='Clubs'), card(Rank='A', Suit='Clubs')]]
-    #                 second_hand = secondee, [card(Rank='Q', Suit='Hearts'), card(Rank='K', Suit='Hearts')]
+                    print('sending hand 2')
+
+                    secondee = [[card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')]]
+                    second_hand = secondee, [card(Rank='Q', Suit='Hearts'), card(Rank='K', Suit='Hearts')]
                     
-    #                 client_hand_dict[client] += second_hand[1] + [rand_trump]
-    #                 client.send(pickle.dumps({'hand 2': client_hand_dict[client]}) + b'|')
+                    client_hand_dict[client] += second_hand[1] + [rand_trump]
+                    print(client_hand_dict[client])
+                    client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
+                    print('send hand 2')
                     
                       
-    #                 for j, k in zip([l for l in clients if l != client], second_hand[0]):
-    #                     client_hand_dict[j] += k
-    #                     # send the cards to each player
-    #                     j.send(pickle.dumps({'hand 2': client_hand_dict[j]}) + b'|')
+                    # for j, k in zip([l for l in clients if l != client], second_hand[0]):
+                    #     client_hand_dict[j] += k
+                    #     # send the cards to each player
+                    #     j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
                             
-    #                 return tricks(clients, trump, trump_client, client_hand_dict)
-    #                 #return declInput(clients, trump, trump_client, client_hand_dict)
-                else: 
+                    # return tricks(clients, trump, trump_client, client_hand_dict)
+                    #return declInput(clients, trump, trump_client, client_hand_dict)
+                else:
+                    for i in [j for j in clients if j != client]:
+                        i.send(pickle.dumps(['o_pass', 'other guy']))
                     break
 
     
@@ -157,7 +164,7 @@ def main():
             print('\n****starting session****\n')
             
             shuffle(clients) # shuffle players around
-            dealer = choice(clients) # pick the player who will deal the cards
+            dealer = clients[0] # pick the player who will deal the cards
             
             dealCards(clients) 
 

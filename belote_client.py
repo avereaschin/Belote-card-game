@@ -55,21 +55,20 @@ def receiving():
             # concatenated into the TCP packet and are missing a message  
             # separator are left in all_data unitl the next message separator 
             # is received
-            all_data += data
-                           
+            all_data += data              
                 
             if b'|' in all_data:
                 to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
                 # dump all messages into a queue
                 all_data = all_data[all_data.index(b'|') + 1:]
 
-                print(to_analyse)
+                print('SERVER: ', to_analyse)
                 q.put(to_analyse)
                 
 
         try:
             next_msg = clnt_q.get(False)
-            print('About to send stuff to gamepy')
+            print('CLIENT: ', next_msg)
             sending(s, next_msg)
         except queue.Empty:
             pass

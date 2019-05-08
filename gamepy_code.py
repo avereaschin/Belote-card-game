@@ -14,8 +14,7 @@ os.chdir(r'Pics')
 # screen setup
 pg.init()
 
-display_width = 1280
-display_height = 720
+display_width, display_height = 1280, 720
 
 game_display = pg.display.set_mode((display_width, display_height))
 pg.display.set_caption('Belote')
@@ -44,6 +43,22 @@ def findMargin(hand):
 def cardToFileName(card):
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
+class Players():
+
+	list_ = []
+	dict_ = {}
+
+	def add_(self, players):
+		self.list += players
+
+	def sort_(self):
+		order = self.list_[self.list_.index('you') + 1:] + self.list[:self.list_.index('you')]  
+		self.dict_ = {k:v for k, v in zip(order, ['west', 'north', 'east'])}
+
+	def clear_(self):
+		self.list_ = []
+		self.dict_ = {}
+
 class Score():
 	"""
 	Keeps track of player scores
@@ -61,7 +76,7 @@ class Image():
 	"""
 	Creates a sprite by adding an image and creating a rect for it
 	"""
-	def __init__(self, pic, x=0, y=0):
+	def __init__(self, pic, x=0, y=0, card=None):
 
 		self.pic, self.x, self.y = pic, x, y
 		self.image = pg.image.load(pic)
@@ -69,6 +84,7 @@ class Image():
 		self.name = pic.split('_')[1][:-4]
 		self.rect = self.image.get_rect()
 		self.rect.topleft = (x, y)
+		self.card = card
 
 
 class TextRender():
@@ -89,6 +105,8 @@ class TextRender():
 class Hand():
     
     cards = []
+    surf_ = None
+    rect_ = None
     
     def add_(self, x):
         if isinstance(x, list):
@@ -101,9 +119,11 @@ class Hand():
         
     def clear_(self):
         self.cards = []
+        self.surf_ = None
+        self.rect_ = None
 
     def create_surf(self):
-    	return [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
+    	self.surf_ = [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
 
     def draw_rect(self):
     	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
@@ -112,11 +132,39 @@ class Hand():
     	for rect, xy in zip(rects, xy_coords):
     		rect.topleft = xy
 
-    	return rects
+    	self.rect_ = rects
+
+class Wait():
+
+	last = None
+
+	def wait_(self, time_to_wait):	
+		"""
+		Returns True if time_to_wait ms have passed from last
+		"""
+
+		# to prevent repeatedly changing the last value with the wait method, the if statement checks if last has already been set
+		if self.last == None:
+			self.last = pg.time.get_ticks()
+
+		now = pg.time.get_ticks()
+
+		if self.last + time_to_wait <= now:
+			self.last = None # clear last
+			return True
+		else:
+			return False		
+
+
 
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
 
+# time.sleep substitute to be used in animations
+sleep_ = Wait()
+
+# holds YOUR cards
+hand = Hand()
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
@@ -187,6 +235,7 @@ def pickTrump():
 	# t2.start()
 	trump = ''
 	msg = ''
+	rand_trump = ''
 
 	# Suit images
 	files = ['Suit_Hearts.png', 'Suit_Diamonds.png', 'Suit_Clubs.png', 'Suit_Spades.png']
@@ -214,16 +263,18 @@ def pickTrump():
 				't_trump2': TextRender('Pick Trump Suit or Pass', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 472),
 				't_play': TextRender('Play', 20, 30 + int((150 - 39) / 2), 40 + int((33 - 24) / 2)),
 				't_pass': TextRender('Pass', 20, 420 + 260 + int((150 - 44) / 2), 470 + 40 + int((33 - 24) / 2)),
-				'score_w': TextRender('West: 0\nEast: 0\nNorth:0', 15, 0, 0)
+				'score_w': TextRender('West: 0\nEast: 0\nNorth:0', 15, 0, 0),
+				'passed': TextRender('Passed', 25)
 				}
 
 	print(text_dict['score_w'].text_rect.size)
 
 	text_dict['score_w'].text = 'ahahah'
 	# Important variables
-	rand_trump = ''
 
-	hand = Hand()
+	print(TextRender('Passed', 25).size)
+
+	
 	# hand.add_(test_hand)
 	# hand_surf = hand.create_surf()
 	# hand_rect = hand.draw_rect()
@@ -237,17 +288,21 @@ def pickTrump():
 	crashed = False
 
 	# Game states variables
-	game_state = {'round_1': False, 'round_2': False, 'pick_trump': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
+	game_state = {'clients': None, 'round_1': True, 'round_2': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
 	
+	instructions = {'rand_trump': [Image(cardToFileName(msg[1]))],
+					'hand 1': [hand.add(msg[1]), hand_surf]}
+
 	while not crashed:
 		
 		# get variables and commands from message queue
 		try:
 			msg = q.get(False)	
 			print(msg)	
-			if msg[0] == 'rand_trump':
+			if msg[0] == 
+
+			elif msg[0] == 'rand_trump':
 				rand_trump = Image(cardToFileName(msg[1]))
-				rand_trump.name = msg[1]
 			elif msg[0] == 'hand 1':
 				hand.add_(msg[1])
 				hand_surf = hand.create_surf()
@@ -287,25 +342,31 @@ def pickTrump():
 
 				# on FIRST ROUND of picking trump
 				if game_state['round_1']:
+					# if clicked play
 					if play_b.collidepoint((mx, my)):
 						clnt_q.put('play')
-						trump = rand_trump.name.Suit
+						print(game_state['rand_trump'])
+						trump = game_state['rand_trump'].Suit
 						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
+						game_state['round_1'] = False
 
+					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_1'] = False
+						game_state['passed'] = True
 						clnt_q.put('pass')
 
 				# on SECOND ROUND of picking trump
 				if game_state['round_2']:	
 					for suit, rect in zip(suits_group, suits_rect):
+						# if clicked on suit image
 						if rect.collidepoint((mx, my)):
 							print(files[suits_group.index(suit)].split('_')[-1][:-4])
 							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
 							clnt_q.put(trump)
 							text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
-
+					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
 						clnt_q.put('pass')
 						game_state['round_2'] = False
@@ -323,10 +384,14 @@ def pickTrump():
 		for i, player, score in zip([0, 1, 2, 3], ['you', 'west', 'north', 'east'], [0, 0, 0, 0]):
 			score_scr.blit(TextRender(f'{player}: {score}', 15).text_surf, (0, 20 + (12 + 4) * i))
 
+		# 
+		if not game_state['trump']:
+			game_display.blit(cardback.image, ((display_width - 88) / 2 + 15, (display_height - 120) / 2))
+			if rand_trump:	
+				game_display.blit(rand_trump.image, ((display_width - 88) / 2, (display_height - 120) / 2))
+
 
 		# DEFAULT OPPONENT BLIT
-
-		game_display.blit(cardback.image, ((display_width - 88) / 2 + 15, (display_height - 120) / 2))
 
 		# west 
 		for i in range(8):
@@ -339,14 +404,13 @@ def pickTrump():
 		for i in range(8):
 			game_display.blit(flip_cardback, (display_width - 120, (display_height - 88 - 20 * 8) / 2 + 20 * i))
 
-		# DEFAULT BLIT
-		if hand.cards and rand_trump:
-			for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+		
+		# DEFAULT YOUR CARDS BLIT 
+		if hand.cards:
+			for surf, rect in zip(hand.surf_, hand.rect_):
 				game_display.blit(surf, rect)
 
-			game_display.blit(rand_trump.image, ((display_width - 88) / 2, (display_height - 120) / 2))
-
-		
+			
 		# Round 1 BLIT
 		if game_state['round_1']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
@@ -370,11 +434,19 @@ def pickTrump():
 			for suit, rect in zip(suits_group, suits_rect):
 				game_display.blit(suit, rect)
 		
+		# if YOU picked trump suit
 		if game_state['pick_trump']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			game_display.blit(text_dict['played_trump'].text_surf, text_dict['played_trump'].text_rect)
+			if sleep_.wait_(1500):
+				game_state['pick_trump'] = False
 
-
+		# if YOU passed
+		if game_state['passed']:
+			game_display.blit(TextRender('Passed', 25).text_surf, (display_width / 2, 470))
+			if sleep_.wait_(1500):
+				game_state['passed'] = False
+				
 		pg.display.update()
 
 def mainLoop():
