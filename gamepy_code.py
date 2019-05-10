@@ -312,12 +312,12 @@ def pickTrump():
 			'clients': [(players.add_, 1), (players.sort_, 0)],
 			'rand_trump': [(rand_trump.add_, 1), (rand_trump.create_surf, 0)]}
 
-	print('size 5 letters is: ', TextRender('North', 25).text_rect.size)
-	print('size 4 letters is: ', TextRender('East', 25).text_rect.size)
-	print('size 1 letter is: ', TextRender('E', 25).text_rect.size)
-	print('size 1 small letter: ', TextRender('e', 25).text_rect.size)
-	print('size 2 small letters: ', TextRender('ea', 25).text_rect.size)
-	print('size 4 small letters: ', TextRender('east', 25).text_rect.size)
+	# print('size 5 letters is: ', TextRender('North', 25).text_rect.size)
+	# print('size 4 letters is: ', TextRender('East', 25).text_rect.size)
+	# print('size 1 letter is: ', TextRender('E', 25).text_rect.size)
+	# print('size 1 small letter: ', TextRender('e', 25).text_rect.size)
+	# print('size 2 small letters: ', TextRender('ea', 25).text_rect.size)
+	# print('size 4 small letters: ', TextRender('east', 25).text_rect.size)
 
 	while not crashed:
 		

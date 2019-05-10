@@ -8,6 +8,8 @@ import threading
 import time
 import re
 
+
+
 def dealCards(clients):
     
     """
@@ -32,7 +34,7 @@ def dealCards(clients):
     for client, hand in zip(clients, first_hand):
         client_hand_dict[client] = hand
         client.sendall(pickle.dumps(['hand 1', hand]) + b'|')
-        print('sent hand')
+        print('sent hand to ', players[client])
         client.sendall(pickle.dumps(['rand_trump', rand_trump]) + b'|')
         print('sent rand_trump')       
     
@@ -40,7 +42,7 @@ def dealCards(clients):
     for client in clients:
         client.sendall(pickle.dumps(['round_1', True]) + b'|')
         print(f'client {client}\'s turn to pick trump')
-        print('sent round_1')
+        print('sent round_1 to ', players[client])
         
         while 1:
             data = client.recv(1024)
@@ -84,9 +86,13 @@ def dealCards(clients):
                     # return tricks(clients, trump, trump_client, client_hand_dict)
                     # return declInput(clients, trump, trump_client, client_hand_dict)
                 else:
+                    # for i in [j for j in clients if j != client]:
                     for i in [j for j in clients if j != client]:
-                        i.send(pickle.dumps(['o_pass', players[client]]))
-                        print('sent o_pass to: ', players[client])
+                        
+
+                        i.sendall(pickle.dumps(['o_pass', players[client]]) + b'|')
+                        i.sendall(pickle.dumps(['ooooo', 'oooooooo']) + b'|')
+                        print('sent oooo to: ', players[i])
                     break
 
     
