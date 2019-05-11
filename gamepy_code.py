@@ -168,8 +168,9 @@ class Wait():
 		else:
 			return False		
 
-print('West size', TextRender('West', 25).text_rect.size)
-print('North size', TextRender('North', 25).text_rect.size)
+print('West size', TextRender('West', 20).text_rect.size)
+print('North size', TextRender('North', 20).text_rect.size)
+print('East size', TextRender('East', 20).text_rect.size)
 
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
@@ -190,6 +191,10 @@ west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0
 
 # during opponents turn this *thinking* cloud will appear above his name indicating he's thinking of a move
 think_cloud = pg.transform.scale(pg.image.load('thought_bubble.png'), (50, 50))
+
+think_cl_xy = {'West': [0, (0 + 46, display_height / 2 - 154)], 
+			   'North': [1, ((display_width - 88 - 20 * 8) / 2 - 60 - 50, (120 - 20) / 2)], 
+			   'East': [1, (display_width - 120 - 50, display_height / 2 - 154)]}
 
 def title_screen():
 	
@@ -304,7 +309,8 @@ def pickTrump():
 	crashed = False
 
 	# Game states (changed accoording to instructions given by server)
-	game_state = {'clients': None, 'round_1': False, 'round_2': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 'o_play': False, 'trump': None, 'rand_trump': None, 'hand 1': None}
+	game_state = {'clients': None, 'round_1': False, 'round_2': False, 'round_2_must_pick': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 
+				  'o_think': False, 'trump': None, 'o_trump': None}
 	
 	# Key variables (changed accoording to instructions given by server)
 	vars_ = {'hand 1': [(hand.add_, 1), (hand.create_surf, 0), (hand.draw_rect, 0)],
@@ -312,12 +318,9 @@ def pickTrump():
 			'clients': [(players.add_, 1), (players.sort_, 0)],
 			'rand_trump': [(rand_trump.add_, 1), (rand_trump.create_surf, 0)]}
 
-	# print('size 5 letters is: ', TextRender('North', 25).text_rect.size)
-	# print('size 4 letters is: ', TextRender('East', 25).text_rect.size)
-	# print('size 1 letter is: ', TextRender('E', 25).text_rect.size)
-	# print('size 1 small letter: ', TextRender('e', 25).text_rect.size)
-	# print('size 2 small letters: ', TextRender('ea', 25).text_rect.size)
-	# print('size 4 small letters: ', TextRender('east', 25).text_rect.size)
+	print('West ', TextRender('West', 20).text_rect.size)
+	print('North ', TextRender('North', 20).text_rect.size)
+	print('East ', TextRender('East', 20).text_rect.size)
 
 	while not crashed:
 		
@@ -394,9 +397,15 @@ def pickTrump():
 						clnt_q.put('pass')
 						game_state['round_2'] = False
 
-				# for i in hand_rect:
-				# 	if i.collidepoint((mx, my)):
-				# 		print(hand.cards[hand_rect.index(i)])
+				# on SECOND ROUND if YOU must pick a trump suit
+				if game_state['round_2_must_pick']:
+					for suit, rect in zip(suits_group, suits_rect):
+						# if clicked on suit image
+						if rect.collidepoint((mx, my)):
+							print(files[suits_group.index(suit)].split('_')[-1][:-4])
+							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
+							clnt_q.put(trump)
+							text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 
 		# DEFAULT SCORE BOARD
 		game_display.blit(score_scr, (0, display_height - 100)) # width, height = (125, 100)
@@ -412,6 +421,10 @@ def pickTrump():
 			if rand_trump.card:	
 				game_display.blit(rand_trump.surf_, ((display_width - 88) / 2, (display_height - 120) / 2))
 
+
+		# THINK CLOUD BLIT
+		if game_state['o_think']:
+			game_display.blit(pg.transform.flip(think_cloud, think_cl_xy[plyConvert(game_state['o_think'])][0], 0), think_cl_xy[plyConvert(game_state['o_think'])][1])
 
 		# DEFAULT OPPONENT BLIT
 
@@ -454,10 +467,19 @@ def pickTrump():
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			game_display.blit(t_trump2.text_surf, t_trump2.text_rect)
 			
+			# pass button blit
 			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 470 + 40, 150, 33), 1)
 			game_display.blit(t_pass.text_surf, t_pass.text_rect)
 
+			# suits blit
+			for suit, rect in zip(suits_group, suits_rect):
+				game_display.blit(suit, rect)
 
+		# ROUND 2 MUST PICK TRUMP BLIT 
+		if game_state['round_2_must_pick']:	
+			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
+			game_display.blit(t_trump2.text_surf, t_trump2.text_rect)
+			
 			for suit, rect in zip(suits_group, suits_rect):
 				game_display.blit(suit, rect)
 		
@@ -484,10 +506,19 @@ def pickTrump():
 
 def declarations():
 
+	hand.add_([card(Rank='7', Suit='Hearts'), card(Rank='9', Suit='Hearts'), card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')])
+
+	game_state = {'any_decl': True, 'o_decl': None}
+
 	crashed = False	
 
 	# background 
 	game_display.fill(green)
+
+	s = pg.Surface((440, 100))
+	s.fill((255, 255, 255, 255))
+
+	print('any decl size: ', TextRender('Any declarations?', 20).text_rect.size)
 
 	while not crashed:
 		
@@ -498,6 +529,15 @@ def declarations():
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
+
+			if event.type == pg.MOUSEBUTTONDOWN:
+				pass
+		
+		# DECLARATIONS PROMPT BLIT
+
+		if game_state['any_decl']:
+			game_display.blit(s, ((display_width - 440)/2, display_height - 300))
+
 
 		# DEFAULT OPPONENT BLIT
 
@@ -522,6 +562,8 @@ def declarations():
 		
 		for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
 			game_display.blit(surf, rect)
+
+		pg.display.update()
 
 
 
@@ -570,7 +612,9 @@ def tricks():
 
 
 
-title_screen()
+declarations()
+
+# title_screen()
 
 
 
