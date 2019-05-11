@@ -163,11 +163,7 @@ def declInput(clients, trump, trump_client, client_hand_dict):
     """
     Ask player for any declarations and checks if declarations are valid
     """
-    
-    global score
-    
-    print('*******************', clients)
-    
+        
     # Sort both hands by suit and rank
     for client, hand in client_hand_dict.items():
         hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
@@ -181,7 +177,10 @@ def declInput(clients, trump, trump_client, client_hand_dict):
     
     # prompt player to input any declarations
     for client, hand in client_hand_dict.items():
-        client.sendall(pickle.dumps({'any_declarations': 1}) + b'|')
+        client.sendall(pickle.dumps({'any_decl': 1}) + b'|')
+
+        for i in [j for j in clients if j != client]:
+            i.send(pickle.dumps(['o_decl', players[client]]) + b'|')
         
         while 1:
             data = client.recv(1024)

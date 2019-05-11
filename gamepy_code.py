@@ -119,13 +119,16 @@ class TextRender():
 class Hand():
     
     cards = []
-    
+
+    clicked = []
     
     def add_(self, x):
         if isinstance(x, list):
             self.cards = self.cards + x
+            self.clicked = [False for i in range(len(x))]
         else:
             self.cards = self.cards + [x]
+            self.clicked = self.clicked + [False]
     
     def pop_(self, x):
         self.cards.pop(self.cards.index(x))
@@ -507,10 +510,20 @@ def pickTrump():
 def declarations():
 
 	hand.add_([card(Rank='7', Suit='Hearts'), card(Rank='9', Suit='Hearts'), card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')])
+	hand_surfs = hand.create_surf()
+	hand_rects = hand.draw_rect()
+
+	print(hand.clicked)
+
+	hand.clicked[1] = True
+
+	print(hand.clicked)
+
 
 	game_state = {'any_decl': True, 'o_decl': None}
 
 	crashed = False	
+	clicked = False
 
 	# background 
 	game_display.fill(green)
@@ -518,7 +531,8 @@ def declarations():
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
 
-	print('any decl size: ', TextRender('Any declarations?', 20).text_rect.size)
+	print('Declare: ', TextRender('Declare', 18).text_rect.size)
+	print('No decl: ', TextRender('No declarations', 18).text_rect.size)
 
 	while not crashed:
 		
@@ -531,12 +545,22 @@ def declarations():
 				crashed = True
 
 			if event.type == pg.MOUSEBUTTONDOWN:
-				pass
+				for surf, rect in zip(hand_surfs, hand_rects):
+					if rect.collidepoint((mx, my)):
+						clicked = True
 		
 		# DECLARATIONS PROMPT BLIT
 
 		if game_state['any_decl']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 300))
+			s.blit(TextRender('Any declarations?', 20).text_surf, (141, 2)) # (157px, 24px)
+			s.blit(TextRender('(Select cards and press declare)', 20).text_surf, (76, 25)) # (288px, 24px)
+
+			play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
+			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
+
+			game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2))
+			game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2))
 
 
 		# DEFAULT OPPONENT BLIT
@@ -560,12 +584,14 @@ def declarations():
 
 		# DEFAULT YOUR CARDS BLIT 
 		
-		for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
-			game_display.blit(surf, rect)
+		if clicked:
+			pass
+		else:		
+			for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
+				game_display.blit(surf, rect)
+
 
 		pg.display.update()
-
-
 
 
 
