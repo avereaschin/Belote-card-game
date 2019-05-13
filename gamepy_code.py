@@ -48,7 +48,6 @@ def findMargin(hand):
 def cardToFileName(card):
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
-
 class Card():
 
 	surf = None
@@ -148,9 +147,6 @@ class Hand():
 
     dict_ = {}
 
-    surfs = None
-    rects = None
-    
     def add_(self, x):
         if isinstance(x, list):
             self.cards = self.cards + x
@@ -171,7 +167,6 @@ class Hand():
 
     def create_surf(self):
 
-    	self.surfs = [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
     	return [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
 
     def draw_rect(self):
@@ -181,7 +176,6 @@ class Hand():
     	for rect, xy in zip(rects_, xy_coords):
     		rect.topleft = xy
 
-    	self.rects = rects_
     	return rects_
 
 class Wait():
@@ -546,6 +540,8 @@ def pickTrump():
 
 def declarations():
 
+	example = pg.transform.scale(pg.image.load('9_of_Hearts.jpg'), (40, 54))
+
 	decl_list = []
 	declaration = []
 
@@ -563,8 +559,11 @@ def declarations():
 	add_s = pg.Surface((150, 33))
 	add_s.fill(khaki)
 
+	clear_s = pg.Surface((150, 33))
+	clear_s.fill(khaki)
+
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
-	print('No decl: ', TextRender('Add declaration', 16).text_rect.size)
+	print('No decl: ', TextRender('Clear', 16).text_rect.size)
 
 	while not crashed:
 		
@@ -602,9 +601,26 @@ def declarations():
 					clnt_q.put('none')		
 
 				if add_d.collidepoint((mx, my)):
-					decl_list.append(declaration)
-					print(decl_list)
+					print('START: ', decl_list)
+					decl_list += [declaration[:]]
+					print('FINISH: ', decl_list)
+					declaration.clear()
+					print('AGAIN: ', decl_list)
 
+					for card in hand.cards:
+						if hand.dict_[card][2]:
+							hand.dict_[card][1].y += 20 
+							hand.dict_[card][2] = None
+
+				if clear_d.collidepoint((mx, my)):
+					decl_list.clear(), declaration.clear()
+
+					print(declaration, decl_list)
+
+					for card in hand.cards:
+						if hand.dict_[card][2]:
+							hand.dict_[card][1].y += 20 
+							hand.dict_[card][2] = None 
 				
 
 		
@@ -621,9 +637,14 @@ def declarations():
 			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
 			game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2)) # (125px, 21px)
 
-			game_display.blit(add_s, ((display_width - 150) / 2, display_height - 185))
-			add_d = pg.draw.rect(game_display, black, ((display_width - 150) / 2, display_height - 185, 150, 33), 1)
+			game_display.blit(add_s, ((display_width - 320) / 2, display_height - 185))
+			add_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2, display_height - 185, 150, 33), 1)
 			add_s.blit(TextRender('Add declaration', 16, italic=True).text_surf, (20, 7)) # (110px, 19px)
+
+			game_display.blit(clear_s, ((display_width - 320) / 2 + 170, display_height - 185))
+			clear_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2 + 170, display_height - 185, 150, 33), 1)
+			clear_s.blit(TextRender('Clear', 16, italic=True).text_surf, (56, 7)) # (38px, 19px)
+
 
 
 		# DEFAULT OPPONENT BLIT
@@ -657,6 +678,7 @@ def declarations():
 		for card in hand.cards:
 			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 		
+		game_display.blit(example, (display_width - 120, display_height - 100))
 
 		pg.display.update()
 
