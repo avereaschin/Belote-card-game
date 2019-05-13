@@ -10,6 +10,8 @@ from random import choice
 # path to game assets
 os.chdir(r'Pics')
 
+print(card(Rank='J', Suit='Q'))
+
 # screen setup
 pg.init()
 
@@ -22,6 +24,7 @@ pg.display.set_caption('Belote')
 black = (0, 0, 0)
 white = (255, 255, 255)
 green = (0, 150, 0)
+khaki = (240,230,140)
 
 # holds all sprites
 card_back = pg.sprite.Group()
@@ -48,14 +51,37 @@ def cardToFileName(card):
 
 class Card():
 
-	card = ''
-	surf_ = ''
+	surf = None
+	rect = None
+	card = None
 
-	def add_(self, card_to_add):
-		self.card = card_to_add
+	def __init__(self, card_=None, x=0, y=0):
+		self.card_ = card_
+		self.x = x
+		self.y = y
+
+	def add_(self, x):
+		if not self.card_:
+			self.card = x
 
 	def create_surf(self):
-		self.surf_ = pg.image.load(cardToFileName(self.card))
+		return pg.image.load(cardToFileName(self.card_))
+
+
+	def draw_rect(self):
+		return self.create_surf().get_rect(topleft = (self.x, self.y))
+
+class TestCard():
+
+	def __init__(self, card_, x=0, y=0):
+		self.card_ = card_
+		self.x = x
+		self.y = y
+		self.surf = pg.image.load(cardToFileName(card_))
+		self.rect = self.surf.get_rect(topleft = (x, y))
+
+	def move(self):
+		self.rect.y -= 20
 
 class Players():
 
@@ -102,10 +128,10 @@ class Image():
 
 
 class TextRender():
-	def __init__(self, text, size, x=0, y=0, color = black):
+	def __init__(self, text, size, x=0, y=0, bold=False, italic=False, color = black):
 
-		self.text, self.size, self.x, self.y, self.color = text, size, x, y, color
-		self.text_font = pg.font.SysFont('Arial', size)
+		self.text, self.size, self.x, self.y, self.color, self.bold, self.italic = text, size, x, y, color, bold, italic
+		self.text_font = pg.font.SysFont('Arial', size, bold, italic)
 		self.text_surf = pg.font.Font.render(self.text_font, text, False, black)
 		self.text_rect = self.text_surf.get_rect()
 		self.text_rect.topleft = (x, y)
@@ -120,35 +146,43 @@ class Hand():
     
     cards = []
 
-    clicked = []
+    dict_ = {}
+
+    surfs = None
+    rects = None
     
     def add_(self, x):
         if isinstance(x, list):
             self.cards = self.cards + x
-            self.clicked = [False for i in range(len(x))]
         else:
             self.cards = self.cards + [x]
-            self.clicked = self.clicked + [False]
     
     def pop_(self, x):
         self.cards.pop(self.cards.index(x))
+
         
     def clear_(self):
         self.cards = []
-        self.surf_ = None
-        self.rect_ = None
+
+    def make_dict(self):
+
+    	self.dict_ = {k:[s,r,c] for k, s, r, c in zip(self.cards, self.create_surf(), self.draw_rect(), [None for i in range(len(self.cards))])}
+
 
     def create_surf(self):
+
+    	self.surfs = [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
     	return [pg.image.load(f'{card.Rank}_of_{card.Suit}.jpg') for card in self.cards]
 
     def draw_rect(self):
     	xy_coords = [(findMargin(self.cards) + (88 + 6) * i, display_height - 120) for i in range(len(self.cards))]
 
-    	rects = [surf.get_rect() for surf in self.create_surf()]
-    	for rect, xy in zip(rects, xy_coords):
+    	rects_ = [surf.get_rect() for surf in self.create_surf()]
+    	for rect, xy in zip(rects_, xy_coords):
     		rect.topleft = xy
 
-    	return rects
+    	self.rects = rects_
+    	return rects_
 
 class Wait():
 
@@ -185,6 +219,9 @@ rand_trump = Card()
 
 # holds YOUR cards
 hand = Hand()
+hand.add_([card(Rank='9', Suit='Hearts'), card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')])
+
+
 
 # holds order in which players play cards
 players = Players()
@@ -509,33 +546,32 @@ def pickTrump():
 
 def declarations():
 
-	hand.add_([card(Rank='7', Suit='Hearts'), card(Rank='9', Suit='Hearts'), card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')])
-	hand_surfs = hand.create_surf()
-	hand_rects = hand.draw_rect()
+	decl_list = []
+	declaration = []
 
-	print(hand.clicked)
+	hand.make_dict()
 
-	hand.clicked[1] = True
-
-	print(hand.clicked)
-
-
-	game_state = {'any_decl': True, 'o_decl': None}
+	game_state = {'any_decl': True, 'o_decl': None, 'clicked': False}
 
 	crashed = False	
-	clicked = False
+	cli = True
 
-	# background 
-	game_display.fill(green)
 
 	s = pg.Surface((440, 100))
-	s.fill((255, 255, 255, 255))
+	s.fill(white)
+
+	add_s = pg.Surface((150, 33))
+	add_s.fill(khaki)
 
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
-	print('No decl: ', TextRender('No declarations', 18).text_rect.size)
+	print('No decl: ', TextRender('Add declaration', 16).text_rect.size)
 
 	while not crashed:
 		
+		# background 
+		game_display.fill(green)
+
+
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()
 
@@ -545,22 +581,49 @@ def declarations():
 				crashed = True
 
 			if event.type == pg.MOUSEBUTTONDOWN:
-				for surf, rect in zip(hand_surfs, hand_rects):
-					if rect.collidepoint((mx, my)):
-						clicked = True
+				for card in hand.cards:
+					if hand.dict_[card][1].collidepoint((mx, my)):
+						
+						if not hand.dict_[card][2]:
+							hand.dict_[card][1].y -= 20
+							hand.dict_[card][2] = True
+							declaration.append(card)
+							print(declaration)
+						
+						else:
+							hand.dict_[card][1].y += 20
+							hand.dict_[card][2] = None
+							del declaration[declaration.index(card)]
+							print(declaration)
+
+				if play_b.collidepoint((mx, my)):
+					clnt_q.put(decl_list)
+				if pass_b.collidepoint((mx, my)):
+					clnt_q.put('none')		
+
+				if add_d.collidepoint((mx, my)):
+					decl_list.append(declaration)
+					print(decl_list)
+
+				
+
 		
 		# DECLARATIONS PROMPT BLIT
 
 		if game_state['any_decl']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 300))
-			s.blit(TextRender('Any declarations?', 20).text_surf, (141, 2)) # (157px, 24px)
-			s.blit(TextRender('(Select cards and press declare)', 20).text_surf, (76, 25)) # (288px, 24px)
+			s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
+			s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
 
 			play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
-			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
+			game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2)) # (62px, 21px)
 
-			game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2))
-			game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2))
+			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
+			game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2)) # (125px, 21px)
+
+			game_display.blit(add_s, ((display_width - 150) / 2, display_height - 185))
+			add_d = pg.draw.rect(game_display, black, ((display_width - 150) / 2, display_height - 185, 150, 33), 1)
+			add_s.blit(TextRender('Add declaration', 16, italic=True).text_surf, (20, 7)) # (110px, 19px)
 
 
 		# DEFAULT OPPONENT BLIT
@@ -584,12 +647,16 @@ def declarations():
 
 		# DEFAULT YOUR CARDS BLIT 
 		
-		if clicked:
-			pass
-		else:		
-			for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
-				game_display.blit(surf, rect)
-
+		# for card in hand.cards:
+		# 	if hand.dict_[card][2] == True:
+		# 		game_display.blit(hand.dict_[card][0], (hand.dict_[card][1].x, hand.dict_[card][1].y - 20))
+		# 	elif hand.dict_[card][2] == False:
+		# 		game_display.blit(hand.dict_[card][0], (hand.dict_[card][1].x, hand.dict_[card][1].y + 20))
+		# 	else:
+		# 		game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
+		for card in hand.cards:
+			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
+		
 
 		pg.display.update()
 
@@ -639,7 +706,6 @@ def tricks():
 
 
 declarations()
-
 # title_screen()
 
 
