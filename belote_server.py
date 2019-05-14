@@ -94,7 +94,7 @@ def declarationChecks(declarations, hand, trump_suit):
             print(f'{j} is Cartbelote')
             continue
         
-        # four cards of identical rank ****** DONE ******       
+        # Square (four cards of identical rank) ****** DONE ******       
         elif len(j) == 4:
             if not False in [True if m[0] == j[-1][0] and m[1] != j[-1][1] else False for m in j[:-1]]:
                  print(f'{j} is a square')

@@ -180,7 +180,7 @@ def declInput(clients, trump, trump_client, client_hand_dict):
         client.sendall(pickle.dumps({'any_decl': 1}) + b'|')
 
         for i in [j for j in clients if j != client]:
-            i.send(pickle.dumps(['o_decl', players[client]]) + b'|')
+            i.send(pickle.dumps(['o_turn', players[client]]) + b'|')
         
         while 1:
             data = client.recv(1024)

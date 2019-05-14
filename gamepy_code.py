@@ -102,14 +102,14 @@ class Score():
 	"""
 	Keeps track of player scores
 	"""
-	score_dict = {'you': 0, 'west': 0, 'north': 0, 'east': 0}
+	dict_ = {'you': 0, 'West': 0, 'North': 0, 'East': 0}
 
 	def add_(self, player, points):
-		self.score_dict[player] = points
+		self.dict_[player] = points
 		
 	def clear_(self):
-		for key in list(self.score_dict.keys()):
-			score_dict[key] = 0
+		for key in list(self.dict_.keys()):
+			dict_[key] = 0
 
 class Image():
 	"""
@@ -206,6 +206,9 @@ print('East size', TextRender('East', 20).text_rect.size)
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
 
+# keep track of player scores
+score = Score()
+
 # time.sleep substitute to be used in animations
 sleep_ = Wait()
 
@@ -229,6 +232,9 @@ think_cloud = pg.transform.scale(pg.image.load('thought_bubble.png'), (50, 50))
 think_cl_xy = {'West': [0, (0 + 46, display_height / 2 - 154)], 
 			   'North': [1, ((display_width - 88 - 20 * 8) / 2 - 60 - 50, (120 - 20) / 2)], 
 			   'East': [1, (display_width - 120 - 50, display_height / 2 - 154)]}
+
+score_scr = pg.Surface((125, 100), pg.SRCALPHA)
+score_scr.fill((255, 255, 255, 50))
 
 def title_screen():
 	
@@ -336,9 +342,6 @@ def pickTrump():
 	
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
-
-	score_scr = pg.Surface((125, 100), pg.SRCALPHA)
-	score_scr.fill((255, 255, 255, 50))
 
 	crashed = False
 
@@ -547,29 +550,28 @@ def declarations():
 
 	hand.make_dict()
 
-	game_state = {'any_decl': True, 'o_decl': None, 'clicked': False}
-
 	crashed = False	
-	cli = True
-
 
 	s = pg.Surface((440, 100))
 	s.fill(white)
 
+	# add declaration button
 	add_s = pg.Surface((150, 33))
 	add_s.fill(khaki)
 
+	# clear declaration button
 	clear_s = pg.Surface((150, 33))
 	clear_s.fill(khaki)
 
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
-	print('No decl: ', TextRender('Clear', 16).text_rect.size)
+	print('No decl: ', TextRender('Nothing to declare', 20, bold=True).text_rect.size)
+
+	game_state = {'any_decl': False, 'o_turn': None, 'no_decl': False}
 
 	while not crashed:
 		
 		# background 
 		game_display.fill(green)
-
 
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()
@@ -580,72 +582,97 @@ def declarations():
 				crashed = True
 
 			if event.type == pg.MOUSEBUTTONDOWN:
+				
 				for card in hand.cards:
+					# if clicked on a card in YOUR hand
 					if hand.dict_[card][1].collidepoint((mx, my)):
-						
+						# if card was not clicked before move it up by 20px
 						if not hand.dict_[card][2]:
 							hand.dict_[card][1].y -= 20
 							hand.dict_[card][2] = True
 							declaration.append(card)
 							print(declaration)
-						
+						# if the card was clicked before (i.e. is already up 20px) move it down by 20px
 						else:
 							hand.dict_[card][1].y += 20
 							hand.dict_[card][2] = None
 							del declaration[declaration.index(card)]
 							print(declaration)
 
-				if play_b.collidepoint((mx, my)):
-					clnt_q.put(decl_list)
-				if pass_b.collidepoint((mx, my)):
-					clnt_q.put('none')		
+				if game_state['any_decl']:
+				
+					# if pressed 'Declare' button send decl_list to server
+					if play_b.collidepoint((mx, my)):
+						clnt_q.put(decl_list)
+					
+					# if pressed 'No declarations' button send 'none' to server
+					if pass_b.collidepoint((mx, my)):
+						game_state['no_decl'] = True
+						clnt_q.put('none')		
+					
+					# if pressed 'Add' button declaration to decl_list
+					if add_d.collidepoint((mx, my)):
+						decl_list += [declaration[:]]
+						print(decl_list)
+						declaration.clear()
 
-				if add_d.collidepoint((mx, my)):
-					print('START: ', decl_list)
-					decl_list += [declaration[:]]
-					print('FINISH: ', decl_list)
-					declaration.clear()
-					print('AGAIN: ', decl_list)
+						for card in hand.cards:
+							if hand.dict_[card][2]:
+								hand.dict_[card][1].y += 20 
+								hand.dict_[card][2] = None
 
-					for card in hand.cards:
-						if hand.dict_[card][2]:
-							hand.dict_[card][1].y += 20 
-							hand.dict_[card][2] = None
+					# if pressed 'Clear' button clear decl_list and declaration variables
+					if clear_d.collidepoint((mx, my)):
+						decl_list.clear(), declaration.clear()
 
-				if clear_d.collidepoint((mx, my)):
-					decl_list.clear(), declaration.clear()
+						print(declaration, decl_list)
 
-					print(declaration, decl_list)
-
-					for card in hand.cards:
-						if hand.dict_[card][2]:
-							hand.dict_[card][1].y += 20 
-							hand.dict_[card][2] = None 
+						for card in hand.cards:
+							if hand.dict_[card][2]:
+								hand.dict_[card][1].y += 20 
+								hand.dict_[card][2] = None 
 				
 
+		# DEFAULT SCORE BOARD
+		game_display.blit(score_scr, (0, display_height - 100)) # (125px, 100px)
 		
+		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
+		
+		for i, player, points in zip(range(4), score.dict_.keys(), score.dict_.values()):
+			score_scr.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, 20 + (12 + 4) * i))
+
 		# DECLARATIONS PROMPT BLIT
 
 		if game_state['any_decl']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 300))
-			s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
-			s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
+			
+			if game_state['no_decl']:
+				s.blit(TextRender('Nothing to declare', 20, bold=True).text_surf, (133, 2)) # (174px, 24px)
+				sleep_.wait_(1500)
+				game_state['any_decl'] = False
+				game_state['no_decl'] = False
 
-			play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
-			game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2)) # (62px, 21px)
+			else:
+				s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
+				s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
 
-			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
-			game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2)) # (125px, 21px)
+				play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
+				game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2)) # (62px, 21px)
 
-			game_display.blit(add_s, ((display_width - 320) / 2, display_height - 185))
-			add_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2, display_height - 185, 150, 33), 1)
-			add_s.blit(TextRender('Add declaration', 16, italic=True).text_surf, (20, 7)) # (110px, 19px)
+				pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 475, 150, 33), 1)
+				game_display.blit(TextRender('No declarations', 18).text_surf, (680 + (150 - 125) / 2, 475 + (33 - 21) / 2)) # (125px, 21px)
 
-			game_display.blit(clear_s, ((display_width - 320) / 2 + 170, display_height - 185))
-			clear_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2 + 170, display_height - 185, 150, 33), 1)
-			clear_s.blit(TextRender('Clear', 16, italic=True).text_surf, (56, 7)) # (38px, 19px)
+				game_display.blit(add_s, ((display_width - 320) / 2, display_height - 185))
+				add_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2, display_height - 185, 150, 33), 1)
+				add_s.blit(TextRender('Add declaration', 16, italic=True).text_surf, (20, 7)) # (110px, 19px)
+
+				game_display.blit(clear_s, ((display_width - 320) / 2 + 170, display_height - 185))
+				clear_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2 + 170, display_height - 185, 150, 33), 1)
+				clear_s.blit(TextRender('Clear', 16, italic=True).text_surf, (56, 7)) # (38px, 19px)
 
 
+		if game_state['o_turn']:
+			game_display.blit(TextRender(f'{game_state[o_turn]}\'s turn'))
 
 		# DEFAULT OPPONENT BLIT
 
@@ -668,13 +695,6 @@ def declarations():
 
 		# DEFAULT YOUR CARDS BLIT 
 		
-		# for card in hand.cards:
-		# 	if hand.dict_[card][2] == True:
-		# 		game_display.blit(hand.dict_[card][0], (hand.dict_[card][1].x, hand.dict_[card][1].y - 20))
-		# 	elif hand.dict_[card][2] == False:
-		# 		game_display.blit(hand.dict_[card][0], (hand.dict_[card][1].x, hand.dict_[card][1].y + 20))
-		# 	else:
-		# 		game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 		for card in hand.cards:
 			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 		
