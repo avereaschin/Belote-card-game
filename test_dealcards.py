@@ -35,7 +35,7 @@ def dealCards(clients):
     rand_trump = card(Rank='A', Suit='Hearts')
     print(f'rand_trump is {rand_trump}')
        
-    first_hand = [[card(Rank='7', Suit='Hearts'), card(Rank='8', Suit='Hearts')], [card(Rank='7', Suit='Clubs'), card(Rank='8', Suit='Clubs')]]
+    first_hand = [[card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts'), card(Rank='Q', Suit='Hearts')], [card(Rank='7', Suit='Clubs'), card(Rank='8', Suit='Clubs')]]
     
     client_hand_dict = {}
     
@@ -111,14 +111,14 @@ def dealCards(clients):
     if not trump:
         for client in clients:
             if client == clients[-1]:
-                client.send(pickle.dumps(['round_2_must_play', True]) + b'|')
+                client.send(pickle.dumps(['round_2_must_pick', True]) + b'|')
             else:
                 client.send(pickle.dumps(['round_2', True]) + b'|')
             
             for i in [j for j in clients if j != client]:
                 i.send(pickle.dumps(['o_think', players[client]]) + b'|')
 
-            print('sent round_1 to ', players[client])
+            print('sent round_2 to ', players[client])
             
             while 1:
                 data = client.recv(1024)
@@ -159,14 +159,14 @@ def dealCards(clients):
     #     j.send(pickle.dumps({'hand 2': client_hand_dict[j]}) + b'|')
     #return declInput(clients, trump, trump_client, client_hand_dict)
 
-def declInput(clients, trump, trump_client, client_hand_dict):
+def declInput(trump, trump_client, client_hand_dict):
     """
     Ask player for any declarations and checks if declarations are valid
     """
         
-    # Sort both hands by suit and rank
-    for client, hand in client_hand_dict.items():
-        hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
+    # # Sort both hands by suit and rank
+    # for client, hand in client_hand_dict.items():
+    #     hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
         
     # Empty byte string where all the incoming socket data will be dumped     
     all_data = b''
@@ -180,7 +180,7 @@ def declInput(clients, trump, trump_client, client_hand_dict):
         client.sendall(pickle.dumps({'any_decl': 1}) + b'|')
 
         for i in [j for j in clients if j != client]:
-            i.send(pickle.dumps(['o_turn', players[client]]) + b'|')
+            i.send(pickle.dumps(['o_think', players[client]]) + b'|')
         
         while 1:
             data = client.recv(1024)
@@ -237,7 +237,7 @@ def declInput(clients, trump, trump_client, client_hand_dict):
     print('Done with declarations')
 
 
-
+score = Score()
 
 host = ''
 port = 54321
@@ -269,7 +269,7 @@ while 1:
     # clients[conn] = id(conn)
     print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
     
-    if len(clients) > 1:
+    if len(clients) > 0:
         print('\n****starting session****\n')
         
         shuffle(clients) # shuffle players around

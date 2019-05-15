@@ -46,29 +46,28 @@ def findMargin(hand):
 	return (display_width / 2 - ((88 * len(hand) + 6 * (len(hand) - 1)) / 2))
 
 def cardToFileName(card):
+	print(card)
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
 class Card():
 
-	surf = None
-	rect = None
+	surf_ = None
+	rect_ = None
 	card = None
 
-	def __init__(self, card_=None, x=0, y=0):
-		self.card_ = card_
+	def __init__(self, x=0, y=0):
 		self.x = x
 		self.y = y
 
 	def add_(self, x):
-		if not self.card_:
-			self.card = x
+		self.card = x
 
 	def create_surf(self):
-		return pg.image.load(cardToFileName(self.card_))
+		self.surf_ = pg.image.load(cardToFileName(self.card))
 
 
 	def draw_rect(self):
-		return self.create_surf().get_rect(topleft = (self.x, self.y))
+		self.rect_ = self.create_surf().get_rect(topleft = (self.x, self.y))
 
 class TestCard():
 
@@ -127,11 +126,11 @@ class Image():
 
 
 class TextRender():
-	def __init__(self, text, size, x=0, y=0, bold=False, italic=False, color = black):
+	def __init__(self, text, size, x=0, y=0, bold=False, italic=False, color=black):
 
 		self.text, self.size, self.x, self.y, self.color, self.bold, self.italic = text, size, x, y, color, bold, italic
 		self.text_font = pg.font.SysFont('Arial', size, bold, italic)
-		self.text_surf = pg.font.Font.render(self.text_font, text, False, black)
+		self.text_surf = pg.font.Font.render(self.text_font, text, False, color)
 		self.text_rect = self.text_surf.get_rect()
 		self.text_rect.topleft = (x, y)
 
@@ -199,29 +198,14 @@ class Wait():
 		else:
 			return False		
 
-print('West size', TextRender('West', 20).text_rect.size)
-print('North size', TextRender('North', 20).text_rect.size)
-print('East size', TextRender('East', 20).text_rect.size)
-
 cardback = Image('Francese_retro_Blu.jpg')
 flip_cardback = pg.transform.rotate(cardback.image, 90)
-
-# keep track of player scores
-score = Score()
-
-# time.sleep substitute to be used in animations
-sleep_ = Wait()
-
+score = Score() # keep track of player scores
+sleep_ = Wait() # time.sleep substitute to be used in animations
 rand_trump = Card()
-
-# holds YOUR cards
-hand = Hand()
-hand.add_([card(Rank='9', Suit='Hearts'), card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')])
-
-
-
-# holds order in which players play cards
-players = Players()
+hand = Hand() # holds YOUR cards
+players = Players() # holds order in which players play cards
+trump = ''
 
 # upperleft x, y coords of each player's hand (except your own)
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
@@ -239,59 +223,29 @@ score_scr.fill((255, 255, 255, 50))
 def title_screen():
 	
 	crashed = False
-	# message = ''
 
 	game_display.fill(white)
+
+	print('TITLE: ', TextRender('start', 60, bold=True).text_rect.size)
 
 	while not crashed:
 
 		mx, my = pg.mouse.get_pos()	
 
-		rect_drawing1 = pg.draw.rect(game_display, black, [(display_width / 2 - 100), display_height - 100, 200, 100])
-
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
 			
-			if event.type == pg.MOUSEBUTTONDOWN and rect_drawing1.collidepoint((mx, my)):
+			if event.type == pg.MOUSEBUTTONDOWN and start_b.collidepoint((mx, my)):
 				return pickTrump()
-
 		
-		game_title = TextRender('Belote', 115, (display_width / 2), (display_height / 3))
+		start_b = pg.draw.rect(game_display, black, [540, 620, 200, 100])
 
-		game_display.blit(game_title.text_surf, game_title.text_rect)
+		game_display.blit(TextRender('start', 60, bold=True, color=white).text_surf, (575, 636)) # (129px, 68px)
+
+		game_display.blit(TextRender('Belote', 115, bold=True).text_surf, (476, 240)) # (327px, 130px)
 
 
-		pg.display.update()
-
-def waitScreen(): 
-
-	txt = TextRender('Joining game...', 80, display_width/2, display_height/3)
-	to_wait = 0
-
-	msg = ''
-
-	game_display.fill(green)
-	
-	while True:
-		
-		for event in pg.event.get():
-			if event.type == pg.QUIT:
-				break
-		try:
-			msg = q.get(False)		
-		except queue.Empty:
-			pass
-
-		if msg == 'start':
-			game_display.blit(txt.text_surf, txt.text_rect)
-
-			now = pg.time.get_ticks()
-			msg = ''
-			if pg.time.get_ticks() >= now + to_wait:
-				print(now)
-				return pickTrump()
-				
 		pg.display.update()
 
 def pickTrump():
@@ -299,9 +253,10 @@ def pickTrump():
 	t1 = threading.Thread(target=main, daemon=True)
 	t1.start()
 	
-	# t2.start()
 	trump = ''
 	msg = ''
+
+	print('MSG ', TextRender('Passed', 25).text_rect.size)
 
 	# Suit images
 	files = ['Suit_Hearts.png', 'Suit_Diamonds.png', 'Suit_Clubs.png', 'Suit_Spades.png']
@@ -312,34 +267,6 @@ def pickTrump():
 	for rect, xy in zip(suits_rect, [(420 + 8, 470 + 37), (420 + 58, 470 + 37), (420 + 116, 470 + 37), (420 + 174, 470 + 37)]):
 		rect.topleft = xy
 
-	# Text lines
-	txt = TextRender('Play Hearts?', 25)
-	txt.set_topleft((display_width - txt.text_rect.size[0])/2, display_height - 245)
-
-	t_trump2 = TextRender('Pick Trump Suit or Pass', 25)
-	t_trump2.set_topleft(420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
-
-	t_play = TextRender('Play', 20)
-	t_play.set_topleft(420 + 30 + int((150 - 39) / 2), 470 + 40 + int((33 - 24) / 2))
-
-	t_pass = TextRender('Pass', 20)
-	t_pass.set_topleft(420 + 260 + int((150 - 44) / 2), 470 + 40 + int((33 - 24) / 2))
-
-	text_dict = {'txt': TextRender('Play Hearts?', 25),
-				't_trump2': TextRender('Pick Trump Suit or Pass', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 472),
-				't_play': TextRender('Play', 20, 30 + int((150 - 39) / 2), 40 + int((33 - 24) / 2)),
-				't_pass': TextRender('Pass', 20, 420 + 260 + int((150 - 44) / 2), 470 + 40 + int((33 - 24) / 2)),
-				'score_w': TextRender('West: 0\nEast: 0\nNorth:0', 15, 0, 0),
-				'passed': TextRender('Passed', 25)
-				}
-
-	print(text_dict['score_w'].text_rect.size)
-
-	text_dict['score_w'].text = 'ahahah'
-	# Important variables
-
-	print(TextRender('Passed', 25).size)
-	
 	s = pg.Surface((440, 100))
 	s.fill((255, 255, 255, 255))
 
@@ -351,13 +278,9 @@ def pickTrump():
 	
 	# Key variables (changed accoording to instructions given by server)
 	vars_ = {'hand 1': [(hand.add_, 1), (hand.create_surf, 0), (hand.draw_rect, 0)],
-			'hand 2': [(hand.clear_, 0), (hand.add_, 1)],
+			'hand 2': [(hand.clear_, 0), (hand.add_, 1), (hand.make_dict, 0)],
 			'clients': [(players.add_, 1), (players.sort_, 0)],
 			'rand_trump': [(rand_trump.add_, 1), (rand_trump.create_surf, 0)]}
-
-	print('West ', TextRender('West', 20).text_rect.size)
-	print('North ', TextRender('North', 20).text_rect.size)
-	print('East ', TextRender('East', 20).text_rect.size)
 
 	while not crashed:
 		
@@ -408,11 +331,10 @@ def pickTrump():
 				if game_state['round_1']:
 					# if clicked play
 					if play_b.collidepoint((mx, my)):
-						clnt_q.put('play')
 						trump = rand_trump.card.Suit
-						text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 						game_state['pick_trump'] = True
 						game_state['round_1'] = False
+						clnt_q.put('play')
 
 					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
@@ -422,27 +344,30 @@ def pickTrump():
 
 				# on SECOND ROUND of picking trump
 				if game_state['round_2']:	
+					
+					# if clicked on suit image
 					for suit, rect in zip(suits_group, suits_rect):
-						# if clicked on suit image
 						if rect.collidepoint((mx, my)):
 							print(files[suits_group.index(suit)].split('_')[-1][:-4])
 							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
+							game_state['pick_trump'] = True
+							game_state['round_2'] = False
 							clnt_q.put(trump)
-							text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
 					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
-						clnt_q.put('pass')
 						game_state['round_2'] = False
+						clnt_q.put('pass')
 
 				# on SECOND ROUND if YOU must pick a trump suit
 				if game_state['round_2_must_pick']:
+					# if clicked on suit image
 					for suit, rect in zip(suits_group, suits_rect):
-						# if clicked on suit image
 						if rect.collidepoint((mx, my)):
 							print(files[suits_group.index(suit)].split('_')[-1][:-4])
 							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
 							clnt_q.put(trump)
-							text_dict['played_trump'] = TextRender(f'You played {trump}', 25, 420 + (440 - t_trump2.text_rect.size[0]) / 2, 470 + 2)
+							game_state['pick_trump'] = True
+							game_state['round_2_must_pick'] = False
 
 		# DEFAULT SCORE BOARD
 		game_display.blit(score_scr, (0, display_height - 100)) # width, height = (125, 100)
@@ -492,21 +417,21 @@ def pickTrump():
 		# ROUND 1 BLIT
 		if game_state['round_1']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-			game_display.blit(txt.text_surf, txt.text_rect)
+			game_display.blit(TextRender(f'Play {rand_trump.card.Suit} ?', 25).text_surf, ((display_width - TextRender(f'Play {rand_trump.card.Suit} ?', 25).text_rect.size[0])/2, 475))
 
 			play_b = pg.draw.rect(game_display, black, (420 + 30, 470 + 40, 150, 33), 1)
 			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 470 + 40, 150, 33), 1)
-			game_display.blit(t_play.text_surf, t_play.text_rect)
-			game_display.blit(t_pass.text_surf, t_pass.text_rect)
+			game_display.blit(TextRender('Play', 20).text_surf, (505, 514))
+			game_display.blit(TextRender('Pass', 20).text_surf, (733, 514))
 
 		# ROUND 2 BLIT 
 		if game_state['round_2']:	
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-			game_display.blit(t_trump2.text_surf, t_trump2.text_rect)
+			game_display.blit(TextRender('Pick Trump Suit or Pass', 25).text_surf, (504, 472)) # (271px, 29px)
 			
 			# pass button blit
 			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 470 + 40, 150, 33), 1)
-			game_display.blit(t_pass.text_surf, t_pass.text_rect)
+			game_display.blit(TextRender('Pass', 20), (733, 514))
 
 			# suits blit
 			for suit, rect in zip(suits_group, suits_rect):
@@ -515,40 +440,44 @@ def pickTrump():
 		# ROUND 2 MUST PICK TRUMP BLIT 
 		if game_state['round_2_must_pick']:	
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-			game_display.blit(t_trump2.text_surf, t_trump2.text_rect)
+			game_display.blit(TextRender('Everyone passed. You MUST pick a suit!', 20).text_surf, (460 , 475)) # (359px, 24px)
 			
-			for suit, rect in zip(suits_group, suits_rect):
+			for i, suit, rect in zip(range(4), suits_group, suits_rect):
+				rect.x = 528 + 58 * i
 				game_display.blit(suit, rect)
 		
 		# IF YOU PICKED TRUMP SUIT
 		if game_state['pick_trump']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
-			game_display.blit(text_dict['played_trump'].text_surf, text_dict['played_trump'].text_rect)
+			s.blit(TextRender(f'You played {trump}', 25).text_surf, ((440 - TextRender(f'You played {trump}', 25).text_rect.size[0]) / 2, 2))
 			if sleep_.wait_(1500):
 				game_state['pick_trump'] = False
 
+
 		# IF YOU PASSED
 		if game_state['passed']:
-			game_display.blit(TextRender('Passed', 25).text_surf, (display_width / 2, 470))
+			game_display.blit(TextRender('Passed', 25).text_surf, (597, 470)) # (85px, 29px)
 			if sleep_.wait_(1500):
 				game_state['passed'] = False
 
 		# IF OPPONENT PASSED
 		if game_state['o_pass']:
-			game_display.blit(TextRender(f'{plyConvert(game_state["o_pass"])} passed', 25).text_surf, (display_width / 2, 470))
+			game_display.blit(TextRender(f'{plyConvert(game_state["o_pass"])} passed', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_pass"])} passed', 25).text_rect.size[0]) / 2, 470))
 			if sleep_.wait_(1500):
 				game_state['o_pass'] = False
+
+		# IF OPPONENT PICKED TRUMP SUIT
+		if game_state['trump'] and game_state['o_trump']:
+			game_display.blit(TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_rect.size[0]) / 2, 470))
+			if sleep_.wait_(1500):
+				game_state['o_trump'] = False
 				
 		pg.display.update()
 
 def declarations():
 
-	example = pg.transform.scale(pg.image.load('9_of_Hearts.jpg'), (40, 54))
-
 	decl_list = []
 	declaration = []
-
-	hand.make_dict()
 
 	crashed = False	
 
@@ -566,10 +495,23 @@ def declarations():
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
 	print('No decl: ', TextRender('Nothing to declare', 20, bold=True).text_rect.size)
 
-	game_state = {'any_decl': False, 'o_turn': None, 'no_decl': False}
+	game_state = {'any_decl': False, 'o_think': None, 'no_decl': False}
 
 	while not crashed:
 		
+		# get variables and commands from message queue
+		try:
+			msg = q.get(False)	
+		except queue.Empty:
+			pass
+		
+		# process changes to game_state 
+		if msg:
+			game_state[msg[0]] = msg[1]
+
+			# clear msg variable 
+			msg = ''
+
 		# background 
 		game_display.fill(green)
 
@@ -671,8 +613,9 @@ def declarations():
 				clear_s.blit(TextRender('Clear', 16, italic=True).text_surf, (56, 7)) # (38px, 19px)
 
 
-		if game_state['o_turn']:
-			game_display.blit(TextRender(f'{game_state[o_turn]}\'s turn'))
+		# THINK CLOUD BLIT
+		if game_state['o_think']:
+			game_display.blit(pg.transform.flip(think_cloud, think_cl_xy[plyConvert(game_state['o_think'])][0], 0), think_cl_xy[plyConvert(game_state['o_think'])][1])
 
 		# DEFAULT OPPONENT BLIT
 
@@ -747,8 +690,8 @@ def tricks():
 
 
 
-declarations()
-# title_screen()
+# declarations()
+title_screen()
 
 
 
