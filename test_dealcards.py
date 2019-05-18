@@ -74,8 +74,10 @@ def dealCards(clients):
                     for i in clients:
                         # i.sendall(pickle.dumps(f'client {client} has picked trump suit {trump}') + b'|')
                         i.sendall(pickle.dumps(['trump', trump]) + b'|')
-            # elif not data:
-            #     s.close()
+                    
+                    for i in [j for j in clients if j != client]:
+                        i.sendall(pickle.dumps(['o_trump', players[client]]) + b'|') 
+                        print('sent o_trump') 
 
                     # if trump suit is picked deal the second round of cards (3 cards to each player)
                     
@@ -90,12 +92,16 @@ def dealCards(clients):
                     print(client_hand_dict[client])
                     client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
                     print('send hand 2')
-                    
                       
+                    time.sleep(1.5)
+                    
                     for j, k in zip([l for l in clients if l != client], second_hand[0]):
                         client_hand_dict[j] += k
                         # send the cards to each player
                         j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
+                    
+                    return declInput(trump, trump_client, client_hand_dict)
+
                             
                     # return tricks(clients, trump, trump_client, client_hand_dict)
                     # return declInput(clients, trump, trump_client, client_hand_dict)
@@ -111,6 +117,7 @@ def dealCards(clients):
     if not trump:
         for client in clients:
             if client == clients[-1]:
+                print('yes')
                 client.send(pickle.dumps(['round_2_must_pick', True]) + b'|')
             else:
                 client.send(pickle.dumps(['round_2', True]) + b'|')
@@ -132,20 +139,19 @@ def dealCards(clients):
                         trump = pickle.loads(data)
                         trump_client = client
                         for i in clients:
-                            i.sendall(pickle.dumps(['trump_client', players[client]]) + b'|')
                             i.sendall(pickle.dumps(['trump', trump]) + b'|')
-                        break                     
-                    
-                    # when all players pass on picking a trump suit deal the cards again. **** Next player needs to deal ****
-                    elif client == clients[-1]:
-                        return deal_cards(clients)
-                               
-                else:
-                    for i in [j for j in clients if j != client]:
-                        i.sendall(pickle.dumps(['o_pass', players[client]]) + b'|')
 
-                    time.sleep(1.5)
-                    break
+                        for i in [j for j in clients if j != client]:
+                            i.sendall(pickle.dumps(['o_trump', players[client]]) + b'|') 
+                            print('sent o_trump')  
+                                  
+                    
+                    else:
+                        for i in [j for j in clients if j != client]:
+                            i.sendall(pickle.dumps(['o_pass', players[client]]) + b'|')
+
+                        time.sleep(1.5)
+                        break
  
     # second_hand = secondRoundHand()
        
@@ -192,7 +198,7 @@ def declInput(trump, trump_client, client_hand_dict):
                 all_data = all_data[all_data.index(b'|') + 1:]
                 
                 # if player has nothing to declare move to the next iteration in the main for loop
-                if to_analyse == '' or to_analyse == 'none':
+                if to_analyse == 'none':
                     decl_dict[client] = []
                     break
                 
@@ -269,7 +275,7 @@ while 1:
     # clients[conn] = id(conn)
     print('connected to client {} {}:{}'.format(id(conn), addr[0], addr[1]))
     
-    if len(clients) > 0:
+    if len(clients) > 1:
         print('\n****starting session****\n')
         
         shuffle(clients) # shuffle players around

@@ -213,9 +213,9 @@ west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0
 # during opponents turn this *thinking* cloud will appear above his name indicating he's thinking of a move
 think_cloud = pg.transform.scale(pg.image.load('thought_bubble.png'), (50, 50))
 
-think_cl_xy = {'West': [0, (0 + 46, display_height / 2 - 154)], 
+think_cl_xy = {'West': [0, (49, display_height / 2 - 185)], 
 			   'North': [1, ((display_width - 88 - 20 * 8) / 2 - 60 - 50, (120 - 20) / 2)], 
-			   'East': [1, (display_width - 120 - 50, display_height / 2 - 154)]}
+			   'East': [1, (display_width - 120 - 50, display_height / 2 - 185)]}
 
 score_scr = pg.Surface((125, 100), pg.SRCALPHA)
 score_scr.fill((255, 255, 255, 50))
@@ -348,11 +348,9 @@ def pickTrump():
 					# if clicked on suit image
 					for suit, rect in zip(suits_group, suits_rect):
 						if rect.collidepoint((mx, my)):
-							print(files[suits_group.index(suit)].split('_')[-1][:-4])
-							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
 							game_state['pick_trump'] = True
 							game_state['round_2'] = False
-							clnt_q.put(trump)
+							clnt_q.put(files[suits_group.index(suit)].split('_')[-1][:-4])
 					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_2'] = False
@@ -363,9 +361,7 @@ def pickTrump():
 					# if clicked on suit image
 					for suit, rect in zip(suits_group, suits_rect):
 						if rect.collidepoint((mx, my)):
-							print(files[suits_group.index(suit)].split('_')[-1][:-4])
-							trump = files[suits_group.index(suit)].split('_')[-1][:-4]
-							clnt_q.put(trump)
+							clnt_q.put(files[suits_group.index(suit)].split('_')[-1][:-4])
 							game_state['pick_trump'] = True
 							game_state['round_2_must_pick'] = False
 
@@ -431,7 +427,7 @@ def pickTrump():
 			
 			# pass button blit
 			pass_b = pg.draw.rect(game_display, black, (420 + 440 - 150 - 30, 470 + 40, 150, 33), 1)
-			game_display.blit(TextRender('Pass', 20), (733, 514))
+			game_display.blit(TextRender('Pass', 20).text_surf, (733, 514))
 
 			# suits blit
 			for suit, rect in zip(suits_group, suits_rect):
@@ -452,6 +448,7 @@ def pickTrump():
 			s.blit(TextRender(f'You played {trump}', 25).text_surf, ((440 - TextRender(f'You played {trump}', 25).text_rect.size[0]) / 2, 2))
 			if sleep_.wait_(1500):
 				game_state['pick_trump'] = False
+				declarations()
 
 
 		# IF YOU PASSED
@@ -471,10 +468,11 @@ def pickTrump():
 			game_display.blit(TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_rect.size[0]) / 2, 470))
 			if sleep_.wait_(1500):
 				game_state['o_trump'] = False
+				declarations(game_state['trump'])
 				
 		pg.display.update()
 
-def declarations():
+def declarations(trump):
 
 	decl_list = []
 	declaration = []
