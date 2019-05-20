@@ -207,10 +207,10 @@ hand = Hand() # holds YOUR cards
 players = Players() # holds order in which players play cards
 trump = ''
 
-# upperleft x, y coords of each player's hand (except your own)
+# upperleft x, y coords of opponents' hands
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
 
-# during opponents turn this *thinking* cloud will appear above his name indicating he's thinking of a move
+# during opponents turn this *thinking* cloud will appear above their name indicating they are thinking of a move
 think_cloud = pg.transform.scale(pg.image.load('thought_bubble.png'), (50, 50))
 
 think_cl_xy = {'West': [0, (49, display_height / 2 - 185)], 
@@ -242,9 +242,7 @@ def title_screen():
 		start_b = pg.draw.rect(game_display, black, [540, 620, 200, 100])
 
 		game_display.blit(TextRender('start', 60, bold=True, color=white).text_surf, (575, 636)) # (129px, 68px)
-
 		game_display.blit(TextRender('Belote', 115, bold=True).text_surf, (476, 240)) # (327px, 130px)
-
 
 		pg.display.update()
 
@@ -253,7 +251,10 @@ def pickTrump():
 	t1 = threading.Thread(target=main, daemon=True)
 	t1.start()
 	
+	# holds trump suit
 	trump = ''
+
+	# holds server messages
 	msg = ''
 
 	print('MSG ', TextRender('Passed', 25).text_rect.size)
@@ -274,7 +275,7 @@ def pickTrump():
 
 	# Game states (changed accoording to instructions given by server)
 	game_state = {'clients': None, 'round_1': False, 'round_2': False, 'round_2_must_pick': False, 'pick_trump': False, 'passed': False, 'o_pass': None, 
-				  'o_think': False, 'trump': None, 'o_trump': None}
+				  'o_think': False, 'trump': None, 'o_trump': None, 'declaration': False}
 	
 	# Key variables (changed accoording to instructions given by server)
 	vars_ = {'hand 1': [(hand.add_, 1), (hand.create_surf, 0), (hand.draw_rect, 0)],
@@ -354,6 +355,7 @@ def pickTrump():
 					# if clicked pass
 					if pass_b.collidepoint((mx, my)):
 						game_state['round_2'] = False
+						game_state['passed'] = True
 						clnt_q.put('pass')
 
 				# on SECOND ROUND if YOU must pick a trump suit
@@ -366,12 +368,12 @@ def pickTrump():
 							game_state['round_2_must_pick'] = False
 
 		# DEFAULT SCORE BOARD
-		game_display.blit(score_scr, (0, display_height - 100)) # width, height = (125, 100)
+		game_display.blit(score_scr, (0, display_height - 100)) # (125px, 100px)
 		
 		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
 		
-		for i, player, score in zip([0, 1, 2, 3], ['you', 'west', 'north', 'east'], [0, 0, 0, 0]):
-			score_scr.blit(TextRender(f'{player}: {score}', 15).text_surf, (0, 20 + (12 + 4) * i))
+		for i, player, points in zip(range(4), score.dict_.keys(), score.dict_.values()):
+			score_scr.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, 20 + (12 + 4) * i))
 
 		# CARD BACK AND TRUMP BLIT (IF TRUMP HASN'T BEEN PICKED)
 		if not game_state['trump']:
@@ -448,8 +450,6 @@ def pickTrump():
 			s.blit(TextRender(f'You played {trump}', 25).text_surf, ((440 - TextRender(f'You played {trump}', 25).text_rect.size[0]) / 2, 2))
 			if sleep_.wait_(1500):
 				game_state['pick_trump'] = False
-				declarations()
-
 
 		# IF YOU PASSED
 		if game_state['passed']:
@@ -468,11 +468,18 @@ def pickTrump():
 			game_display.blit(TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_rect.size[0]) / 2, 470))
 			if sleep_.wait_(1500):
 				game_state['o_trump'] = False
-				declarations(game_state['trump'])
+
+		# IF SERVER FINISHED SENDING PICK TRUMP INSTRUCTIONS START DECLARATIONS PHASE OF THE GAME
+		if game_state['declaration']:
+			declarations(game_state['trump'])
 				
 		pg.display.update()
 
 def declarations(trump):
+
+	print('START DECLARATIONS PHASE')
+
+	print('Rect_size ', TextRender('Invalid declaration, try again.', 20, bold=True).text_rect.size) # (273px, 24px)
 
 	decl_list = []
 	declaration = []
@@ -481,6 +488,9 @@ def declarations(trump):
 
 	s = pg.Surface((440, 100))
 	s.fill(white)
+
+	# holds server messages
+	msg = ''
 
 	# add declaration button
 	add_s = pg.Surface((150, 33))
@@ -493,7 +503,7 @@ def declarations(trump):
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
 	print('No decl: ', TextRender('Nothing to declare', 20, bold=True).text_rect.size)
 
-	game_state = {'any_decl': False, 'o_think': None, 'no_decl': False}
+	game_state = {'any_decl': False, 'o_think': None, 'no_decl': False, 'any_decl_err': False}
 
 	while not crashed:
 		
@@ -519,36 +529,45 @@ def declarations(trump):
 		# EVENT LOOP
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
+				sys.exit()
 				crashed = True
 
 			if event.type == pg.MOUSEBUTTONDOWN:
-				
-				for card in hand.cards:
-					# if clicked on a card in YOUR hand
-					if hand.dict_[card][1].collidepoint((mx, my)):
-						# if card was not clicked before move it up by 20px
-						if not hand.dict_[card][2]:
-							hand.dict_[card][1].y -= 20
-							hand.dict_[card][2] = True
-							declaration.append(card)
-							print(declaration)
-						# if the card was clicked before (i.e. is already up 20px) move it down by 20px
-						else:
-							hand.dict_[card][1].y += 20
-							hand.dict_[card][2] = None
-							del declaration[declaration.index(card)]
-							print(declaration)
-
+				# if prompted for declarations you can start selecting cards
 				if game_state['any_decl']:
+
+					for card in hand.cards:
+						# if clicked on a card in YOUR hand
+						if hand.dict_[card][1].collidepoint((mx, my)):
+							# if card was not clicked before move it up by 20px
+							if not hand.dict_[card][2]:
+								hand.dict_[card][1].y -= 20
+								hand.dict_[card][2] = True
+								declaration.append(card)
+								print(declaration)
+							# if the card was clicked before (i.e. is already up 20px) move it down by 20px
+							else:
+								hand.dict_[card][1].y += 20
+								hand.dict_[card][2] = None
+								del declaration[declaration.index(card)]
+								print(declaration)
 				
 					# if pressed 'Declare' button send decl_list to server
 					if play_b.collidepoint((mx, my)):
-						clnt_q.put(decl_list)
-					
+						if not decl_list:
+							decl_list += [declaration[:]]
+							clnt_q.put(decl_list)
+						else:
+							clnt_q.put(decl_list)
+						game_state['any_decl'] = False
+						game_state['any_decl_err'] = False
+
 					# if pressed 'No declarations' button send 'none' to server
 					if pass_b.collidepoint((mx, my)):
 						game_state['no_decl'] = True
-						clnt_q.put('none')		
+						clnt_q.put('none')	
+						game_state['any_decl'] = False	
+						game_state['any_decl_err'] = False
 					
 					# if pressed 'Add' button declaration to decl_list
 					if add_d.collidepoint((mx, my)):
@@ -593,8 +612,13 @@ def declarations(trump):
 				game_state['no_decl'] = False
 
 			else:
-				s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
-				s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
+
+				if game_state['any_decl_err']:
+					s.blit(TextRender('Invalid declaration, try again.', 20, bold=True).text_surf, (83, 2)) # (273px, 24px)
+
+				else:
+					s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
+					s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
 
 				play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
 				game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2)) # (62px, 21px)
@@ -639,11 +663,7 @@ def declarations(trump):
 		for card in hand.cards:
 			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 		
-		game_display.blit(example, (display_width - 120, display_height - 100))
-
 		pg.display.update()
-
-
 
 def tricks():
 

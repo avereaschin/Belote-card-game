@@ -21,6 +21,255 @@ class Score():
         for key in list(self.score_dict.keys()):
             score_dict[key] = 0
 
+def tryInputAgain(message, player):
+    declaration = input(f'{message}. Try again:\n')
+    
+    while check_decl_validity(declaration) != 1:
+        declaration = input('Try again?\n')
+    
+    for i in re.split('\sand\s', declaration):
+        declarations = [[Card(j, k) for j, k in zip(re.split(',*\s', i)[0::2], re.split(',*\s', i)[1::2])]]
+        
+        if declaration == 'none':
+            return 'none'
+        else:
+            return declarations
+
+
+def declarationChecks(declarations, hand, trump_suit):
+    
+    """
+    There are 3 things to consider when looking at declarations:
+
+    1. Does the declaration consist of cards that the player actually holds?
+    2. Does the declaration actually form a sequence?
+    3. Do any cards in appear in multiple declarations?
+
+    If the answer to any of the above questions is NO then the function will return None.
+    """
+    
+    # Check 1
+    print(declarations)
+    if declarations == [] or declarations == ['none']:
+        return 1
+    
+    hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
+    print(hand)
+    
+    for j in declarations:    
+        j.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
+        if not set(j).issubset(hand):
+            return 'Declaration not in hand'
+    
+    print('check #1 passed\n')
+
+    # Check 2    
+    for j in declarations:
+        
+        bingo = 0 #Keeps track of how many pairs of cards have matching suits and are part of a sequence
+            
+        # Cartbelote ****** DONE ******
+        if j == [card(Rank = 'Q', Suit = trump_suit), card(Rank = 'K', Suit = trump_suit)]:
+            print(f'{j} is Cartbelote')
+            continue
+        
+        # Square (four cards of identical rank) ****** DONE ******       
+        elif len(j) == 4:
+            if not False in [True if m[0] == j[-1][0] and m[1] != j[-1][1] else False for m in j[:-1]]:
+                 print(f'{j} is a square')
+                 continue
+        
+        # sequence of 3+ cards ****** DONE ******
+        else:
+        
+            for k in range(1, len(j)): #we don't start at index 0 because there are no predecessors to it, i.e. no cards to be compared
+
+                # if suit of card i matches that of card i-1
+
+                if j[k][1] == j[k-1][1]:
+                    print('Comparing cards: ({0}, {1})'.format(hand[k], hand[k - 1]))
+                    print('k value is: {}'.format(k))
+
+                    # if card i is 1 step above card i-1 in hierarchy, e.g. 'J' is 1 step above '10'
+                    if hierarchy_[j[k][0]] - hierarchy_[j[k-1][0]] == 1: 
+                        bingo += 1 #add 1 tick to bingo
+                        print('bingo + 1 = {}'.format(bingo))
+
+                        # at the last card check if we have 2+ bingos
+                        if k == len(j) - 1:
+                            if bingo >= 2: 
+                                print('\nFOUND SEQUENCE! \n {}\n'.format(j[-1: -1 - bingo - 1:-1]))
+                                print('*' * 40)
+
+                            else:
+                                print('Not a valid declaration')
+                                return None                        
+
+                #if card i and i-1 suits don't match check how many bingos did we get up to card i-1. 
+                else:
+                    print('Not a valid declaration')
+                    return f'Declaration {j} is not a valid sequence'
+                
+    print('passed check #2')
+    
+    # Check 3    
+    counter = 1
+    
+    for i in declarations:
+
+        if declarations.index(i) != 0: #skip first declaration as there are no previous declarations to compare it to
+            while declarations.index(i) >= counter:
+
+                for j in i:
+                    if j == card(Rank='Q', Suit=trump_suit) or j == card(Rank='K', Suit=trump_suit): # ignore cartbelote cards
+                        continue
+                    elif j in declarations[declarations.index(i) - counter]: # check if card is in previous declaration
+                        return 'card {} from declaration {} in another declaration {}'.format(j, i, declarations[player][declarations[player].index(i) - counter])
+
+                counter += 1 # increment counter by one so we can gradually check all previous declarations for instances of card j
+
+            counter = 1 # reset counter before moving on to checking duplicate cards in the next declaration
+            
+    print('passed check #3')
+    
+    return 1 # if the declaration passes all checks exit the function with True 
+        
+    
+def resetCopyDeck():
+    """
+    Resets the card deck if we need to deal out cards again. Only happens if no one picks a trump suit
+    """
+    deck_dealing = deck[:]
+    
+
+def choicePop():
+
+    """
+    Picks a random card from the decks and pops it from the deck list
+    """
+    card = choice(deck_dealing)
+    deck_dealing.pop(deck_dealing.index(card))
+    return card
+
+def checkBela(decl_dict, trump):
+    """
+    Bela is always a valid declaration, i.e. the player who holds it gets 20 points regardless of the other team's declarations.
+    This function scans both team's declarations for Bela. If one is found this function removes the Bela from the decl_dict before
+    it feeds into the declComp() function. It also calls the score function which gives the team who holds Bela 20 points.
+    """
+    
+    bela = [card(Rank='Q', Suit=trump), card(Rank='K', Suit=trump)]
+
+    for client, decl in decl_dict.items():        
+       
+        if bela in decl:
+            # Add 20 points to the team holding Bela
+            for team, team_members in teams.items():
+                if client in team_members:
+                    score.add_(players[client], 20) 
+                    break
+            print(f'{players[client]} has declared Bela and gets +20 points!')
+        
+            # Remove Bela from decl_dict (decl_dict will be used in declCompare which doesn't need a declaration that 
+            # is always valid (just like Bela) hence why it is removed)
+            decl.pop(decl.index(bela))  
+            break
+        
+    return decl_dict
+
+def checkAnyDecl(decl_dict):
+    """
+    Checks if decl_dict contains any declarations. Returns 1 if at least one declaration exists and 0 otherwise. 
+    To be used after checkBela()
+    """
+    return 0 if len(list(filter(None, chain.from_iterable(decl_dict.values())))) == 0 else 1
+
+def flatListFromDictVal(decl_dict, key_list):
+    """
+    Takes a declaration dict and flattens its values into one list. Useful when dicts have nested lists as values. Also filters out any empty lists.
+    """
+    return list(filter(None, chain.from_iterable([decl_dict[key] for key in key_list])))
+
+def flatListMatrix(decl_flat_list, trump):
+    """
+    
+    """             
+    return [f'{declType(decl)}{declLen(decl)}{hierarchy_[decl[-1].Rank]}{int(decl[-1].Suit == trump)}' for decl in decl_flat_list]
+
+def declToString(decl):
+    """
+    Converts a declaration from list of named tuples to string 
+    """
+    empty_string = ''
+
+    for card in decl:
+        if card != decl[-1]:
+            empty_string += card[0] + ', '
+        else:
+            empty_string += card[0]
+    
+    return empty_string
+
+def firstRoundHand():
+    """
+    First round hand. Players are dealt 5 cards each
+    """
+    return [[choicePop() for i in range(5)] for i in range(4)]
+
+def secondRoundHand():
+    """
+    Second round hand. After trump suit is chosen, players are dealt 3 cards each (one player gets 2 cards + trump card)
+    """
+    return [[choicePop() for j in range(3)] if i != 0 else [choicePop() for j in range(2)] for i in range(4)]
+    
+def declLen(declaration):
+    """
+    Returns the length of the declaration. If the declaration is a sequence with more than 5 cards the function will return 5.
+    """
+    if declType(declaration) == 1 and len(declaration) > 5:
+        return 5
+    else:
+        return len(declaration)
+
+def declType(declaration):
+    """
+    There are 3 tiers of declarations:
+    tier 1 (lowest): Sequences. E.g. J, Q, K, A
+    tier 2: Squares. E.g. Q, Q, Q, Q
+    tier 3 (highest, i.e. declaration always counts): Bela. Only trump suit Q, K
+    """
+    
+    # If the length of declaration is 2 then it can only be a Bela
+    if len(declaration) == 2:
+        return 3
+    # If the length of declaration is 4 it can either be a sequence or a square. The following code checks that:
+    if len(declaration) == 4: 
+        for card in declaration[1:]:
+            if card.Rank == declaration[declaration.index(card) - 1].Rank:
+                pass
+                if card == declaration[-1]:
+                    return 2
+            else: 
+                return 1
+    else:
+        return 1
+
+def declMax(decl_dict, trump):
+    """
+    Returns the name of the team with the highest value declaration or zero if there is a tie between the max declarations of each team
+    """
+    
+    flat_ = flatListFromDictVal(decl_dict, list(decl_dict.keys()))
+    matrix_ = flatListMatrix(flat_, trump)
+    
+    
+    max_ = max(matrix_)
+    
+    if matrix_.count(max_) > 1:
+        return 0
+    else:
+        return flat[matrix_.index(max_)]
+
 def dealCards(clients):
     
     """
@@ -31,14 +280,17 @@ def dealCards(clients):
     # stage 1. deal cards and pick trump suit 
     trump = ''
     
-    #rand_trump = choice(deck_dealing)
-    rand_trump = card(Rank='A', Suit='Hearts')
+    rand_trump = choice(deck_dealing)
     print(f'rand_trump is {rand_trump}')
-       
-    first_hand = [[card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts'), card(Rank='Q', Suit='Hearts')], [card(Rank='7', Suit='Clubs'), card(Rank='8', Suit='Clubs')]]
+
+    # remove trump card from deck before dealing cards
+    deck_dealing.pop(deck_dealing.index(rand_trump))
     
+    # holds players as dict key and their cards as dict value       
     client_hand_dict = {}
-    
+
+    first_hand = firstRoundHand()
+
     for client in clients:
         client.send(pickle.dumps(['clients', [f'player {i}' if j != client else 'you' for i, j in enumerate(clients, 1)]]) + b'|')
 
@@ -81,30 +333,25 @@ def dealCards(clients):
 
                     # if trump suit is picked deal the second round of cards (3 cards to each player)
                     
-                    #second_hand = secondRoundHand()
+                    second_hand = secondRoundHand()
                     
-                    print('sending hand 2')
-
-                    secondee = [[card(Rank='10', Suit='Hearts'), card(Rank='J', Suit='Hearts')]]
-                    second_hand = secondee, [card(Rank='Q', Suit='Hearts'), card(Rank='K', Suit='Hearts')]
-                    
-                    client_hand_dict[client] += second_hand[1] + [rand_trump]
-                    print(client_hand_dict[client])
-                    client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
-                    print('send hand 2')
-                      
                     time.sleep(1.5)
-                    
-                    for j, k in zip([l for l in clients if l != client], second_hand[0]):
+
+                    client_hand_dict[client] += second_hand[0] + [rand_trump]
+                    client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
+                              
+                    for j, k in zip([l for l in clients if l != client], second_hand[1:]):
                         client_hand_dict[j] += k
-                        # send the cards to each player
                         j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
                     
-                    return declInput(trump, trump_client, client_hand_dict)
+                    # send instruction to client to start sending declarations
+                    for i in clients:
+                        i.sendall(pickle.dumps(['declaration', True]) + b'|')
+                    
+                    time.sleep(1.5)        
 
-                            
                     # return tricks(clients, trump, trump_client, client_hand_dict)
-                    # return declInput(clients, trump, trump_client, client_hand_dict)
+                    return declInput(trump, trump_client, client_hand_dict)
                 else:
                     for i in [j for j in clients if j != client]:
                         i.sendall(pickle.dumps(['o_pass', players[client]]) + b'|')
@@ -117,7 +364,6 @@ def dealCards(clients):
     if not trump:
         for client in clients:
             if client == clients[-1]:
-                print('yes')
                 client.send(pickle.dumps(['round_2_must_pick', True]) + b'|')
             else:
                 client.send(pickle.dumps(['round_2', True]) + b'|')
@@ -135,6 +381,7 @@ def dealCards(clients):
                     to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
                     print(to_analyse)
                     all_data = all_data[all_data.index(b'|') + 1:]
+                    # if picked a valid suit deal rest of the cards and call declInput()
                     if pickle.loads(data) in suits:
                         trump = pickle.loads(data)
                         trump_client = client
@@ -145,6 +392,25 @@ def dealCards(clients):
                             i.sendall(pickle.dumps(['o_trump', players[client]]) + b'|') 
                             print('sent o_trump')  
                                   
+                        second_hand = secondRoundHand()
+                        
+                        time.sleep(1.5)
+
+                        client_hand_dict[client] += second_hand[0] + [rand_trump]
+                        client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
+                                                  
+                        for j, k in zip([l for l in clients if l != client], second_hand[1:]):
+                            client_hand_dict[j] += k
+                            # send the cards to each player
+                            j.send(pickle.dumps(['hand 2', client_hand_dict[j]]) + b'|')
+
+                        # send instruction to client to start sending declarations
+                        for i in clients:
+                            i.sendall(pickle.dumps(['declaration', True]) + b'|')
+
+                        time.sleep(1.5)
+
+                        return declInput(trump, trump_client, client_hand_dict)
                     
                     else:
                         for i in [j for j in clients if j != client]:
@@ -152,18 +418,6 @@ def dealCards(clients):
 
                         time.sleep(1.5)
                         break
- 
-    # second_hand = secondRoundHand()
-       
-        
-    # client_hand_dict[trump_client] += second_hand[1] + [rand_trump]    
-    # trump_client.send(pickle.dumps({'hand 2': client_hand_dict[trump_client]}) + b'|')
-
-    # for j, k in zip([l for l in clients if l != client], second_hand[0]):
-    #     client_hand_dict[j] += k
-    #     # send the cards to each player
-    #     j.send(pickle.dumps({'hand 2': client_hand_dict[j]}) + b'|')
-    #return declInput(clients, trump, trump_client, client_hand_dict)
 
 def declInput(trump, trump_client, client_hand_dict):
     """
@@ -173,7 +427,9 @@ def declInput(trump, trump_client, client_hand_dict):
     # # Sort both hands by suit and rank
     # for client, hand in client_hand_dict.items():
     #     hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
-        
+     
+    print('starting to accept declarations')
+
     # Empty byte string where all the incoming socket data will be dumped     
     all_data = b''
     
@@ -183,7 +439,7 @@ def declInput(trump, trump_client, client_hand_dict):
     
     # prompt player to input any declarations
     for client, hand in client_hand_dict.items():
-        client.sendall(pickle.dumps({'any_decl': 1}) + b'|')
+        client.sendall(pickle.dumps(['any_decl', True]) + b'|')
 
         for i in [j for j in clients if j != client]:
             i.send(pickle.dumps(['o_think', players[client]]) + b'|')
@@ -201,24 +457,19 @@ def declInput(trump, trump_client, client_hand_dict):
                 if to_analyse == 'none':
                     decl_dict[client] = []
                     break
-                
-                declaration = []
-                
-                for i in re.split('\sand\s', to_analyse):
-                    declaration += [[card(j, k) for j, k in zip(re.split(',*\s', i)[0::2], re.split(',*\s', i)[1::2])]]
                     
                 print('declaration is {}'.format(declaration))
                 
-                CV = checkDeclValidity(to_analyse)
-                DC = declarationChecks(declaration, hand, trump)
+                DC = declarationChecks(to_analyse, hand, trump)
                 
-                if CV != 1 or DC != 1:
+                if DC != 1:
                     # if declaration hasn't passed the relevant checks, reset declarations and all_data variables
                     # and prompt user for input again
                     print('declaration checks results', DC)
                     declaration = []
                     all_data = b''
-                    client.sendall(pickle.dumps({'any_declarations': 2}) + b'|')
+                    client.sendall(pickle.dumps(['any_decl_err', True]) + b'|')
+                    client.sendall(pickle.dumps(['any_decl', True]) + b'|')
                 else:
                     decl_dict[client] = declaration
                     break
@@ -228,12 +479,12 @@ def declInput(trump, trump_client, client_hand_dict):
     
     # Check if there are any declarations at all
     if checkAnyDecl(decl_dict): # if checkAnyDecl() returns 1
-        max_decl_team = declMax(decl_dict, trump)
+        max_decl = declMax(decl_dict, trump)
         
-        print(f'max_decl_team is: {max_decl_team}')
+        print(f'max_decl is: {max_decl}')
         
         # if one team holds a declaration with the highest value, all of their declarations are counted towards the final score
-        if max_decl_team: 
+        if max_decl: 
             decl_to_score = sum([decl_values[declToString(decl)] for decl in flatListFromDictVal(decl_dict, teams[max_decl_team])])
             print(f'{max_decl_team} holds the highest value declaration so all of their declarations count.\n {max_decl_team} receives {decl_to_score} points')
             
