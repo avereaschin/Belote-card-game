@@ -49,9 +49,9 @@ def declarationChecks(declarations, hand, trump_suit):
     """
     
     # Check 1
-    print(declarations)
-    if declarations == [] or declarations == ['none']:
-        return 1
+    # print(declarations)
+    # if declarations == [] or declarations == ['none']:
+    #     return 1
     
     hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
     print(hand)
@@ -154,8 +154,8 @@ def choicePop():
 def checkBela(decl_dict, trump):
     """
     Bela is always a valid declaration, i.e. the player who holds it gets 20 points regardless of the other team's declarations.
-    This function scans both team's declarations for Bela. If one is found this function removes the Bela from the decl_dict before
-    it feeds into the declComp() function. It also calls the score function which gives the team who holds Bela 20 points.
+    This function scans players' declarations for Bela. If one is found this function removes the Bela from the decl_dict before
+    it feeds into the declComp() function. It also calls the Score.add_ function which gives the player who holds Bela 20 points.
     """
     
     bela = [card(Rank='Q', Suit=trump), card(Rank='K', Suit=trump)]
@@ -163,11 +163,14 @@ def checkBela(decl_dict, trump):
     for client, decl in decl_dict.items():        
        
         if bela in decl:
-            # Add 20 points to the team holding Bela
-            for team, team_members in teams.items():
-                if client in team_members:
-                    score.add_(players[client], 20) 
-                    break
+            # Add 20 points to the player holding Bela
+            score.add_(players[client], 20)
+            for i in clients:
+                if i == client:
+                    i.sendall(pickle.dumps(['score', ('you', 20)]) + b'|') 
+                else:
+                    i.sendall(pickle.dumps(['score', (players[client], 20)]) + b'|') 
+            
             print(f'{players[client]} has declared Bela and gets +20 points!')
         
             # Remove Bela from decl_dict (decl_dict will be used in declCompare which doesn't need a declaration that 
@@ -262,13 +265,41 @@ def declMax(decl_dict, trump):
     flat_ = flatListFromDictVal(decl_dict, list(decl_dict.keys()))
     matrix_ = flatListMatrix(flat_, trump)
     
-    
     max_ = max(matrix_)
     
     if matrix_.count(max_) > 1:
         return 0
     else:
-        return flat[matrix_.index(max_)]
+        max_decl = flat_[matrix_.index(max_)]
+
+        for client, declaration in decl_dict.items():
+            if max_decl in declaration:
+                return client, max_decl        
+
+def declMsg(decls):
+    """
+    Compiles a message regarding a player's declaration(s) to be sent to his opponents. Declarations aren't supposed to reveal a player's
+    cards until we know for sure that the player holds the highest declaration. As a result, if a player declares a 3 card sequnce: [J Hearts,
+    Q Hearts, K Hearts], his opponents will only be told that "a 3 card sequence (high K)" has been declared.
+    """
+    msg = ''
+
+    for i, decl in enumerate(decls):
+        print(decl)
+        if i > 0:
+            msg += ' ' + 'and'
+            print(msg)
+        if declType(decl) == 1:
+            msg += f'a {declLen(decl)} card sequence (high {decl[-1].Rank})' 
+            print(msg)           
+        elif declType(decl) == 2:
+            msg += 'a square'
+            print(msg)
+        else:
+            msg += 'Bela'
+            print(msg)
+
+    return msg
 
 def dealCards(clients):
     
@@ -280,7 +311,8 @@ def dealCards(clients):
     # stage 1. deal cards and pick trump suit 
     trump = ''
     
-    rand_trump = choice(deck_dealing)
+    # rand_trump = choice(deck_dealing)
+    rand_trump = card(Rank='10', Suit='Hearts')
     print(f'rand_trump is {rand_trump}')
 
     # remove trump card from deck before dealing cards
@@ -289,7 +321,9 @@ def dealCards(clients):
     # holds players as dict key and their cards as dict value       
     client_hand_dict = {}
 
-    first_hand = firstRoundHand()
+    # first_hand = firstRoundHand()
+    first_hand = [[card(Rank='J', Suit='Hearts'), card(Rank='Q', Suit='Hearts'), card(Rank='K', Suit='Hearts'), card(Rank='A', Suit='Hearts')],
+                 [card(Rank='J', Suit='Clubs'), card(Rank='Q', Suit='Clubs'), card(Rank='K', Suit='Clubs'), card(Rank='A', Suit='Clubs')]]
 
     for client in clients:
         client.send(pickle.dumps(['clients', [f'player {i}' if j != client else 'you' for i, j in enumerate(clients, 1)]]) + b'|')
@@ -333,9 +367,10 @@ def dealCards(clients):
 
                     # if trump suit is picked deal the second round of cards (3 cards to each player)
                     
-                    second_hand = secondRoundHand()
+                    # second_hand = secondRoundHand()
+                    second_hand = [[], []]
                     
-                    time.sleep(1.5)
+                    time.sleep(1)
 
                     client_hand_dict[client] += second_hand[0] + [rand_trump]
                     client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
@@ -394,7 +429,7 @@ def dealCards(clients):
                                   
                         second_hand = secondRoundHand()
                         
-                        time.sleep(1.5)
+                        time.sleep(1)
 
                         client_hand_dict[client] += second_hand[0] + [rand_trump]
                         client.send(pickle.dumps(['hand 2', client_hand_dict[client]]) + b'|')
@@ -419,16 +454,11 @@ def dealCards(clients):
                         time.sleep(1.5)
                         break
 
+
 def declInput(trump, trump_client, client_hand_dict):
     """
     Ask player for any declarations and checks if declarations are valid
     """
-        
-    # # Sort both hands by suit and rank
-    # for client, hand in client_hand_dict.items():
-    #     hand.sort(key=lambda x: (x[1], hierarchy_[x[0]]))
-     
-    print('starting to accept declarations')
 
     # Empty byte string where all the incoming socket data will be dumped     
     all_data = b''
@@ -438,7 +468,9 @@ def declInput(trump, trump_client, client_hand_dict):
     decl_dict = {}
     
     # prompt player to input any declarations
-    for client, hand in client_hand_dict.items():
+    for client in clients[clients.index(trump_client):] + clients[:clients.index(trump_client)]:
+    # for client, hand in client_hand_dict.items():
+
         client.sendall(pickle.dumps(['any_decl', True]) + b'|')
 
         for i in [j for j in clients if j != client]:
@@ -456,11 +488,14 @@ def declInput(trump, trump_client, client_hand_dict):
                 # if player has nothing to declare move to the next iteration in the main for loop
                 if to_analyse == 'none':
                     decl_dict[client] = []
+                    for i in [j for j in clients if j != client]:
+                        i.sendall(pickle.dumps(['o_no_decl', players[client]]) + b'|')
+                        time.sleep(2)
                     break
                     
-                print('declaration is {}'.format(declaration))
+                print('declaration is {}'.format(to_analyse))
                 
-                DC = declarationChecks(to_analyse, hand, trump)
+                DC = declarationChecks(to_analyse, client_hand_dict[client], trump)
                 
                 if DC != 1:
                     # if declaration hasn't passed the relevant checks, reset declarations and all_data variables
@@ -471,7 +506,11 @@ def declInput(trump, trump_client, client_hand_dict):
                     client.sendall(pickle.dumps(['any_decl_err', True]) + b'|')
                     client.sendall(pickle.dumps(['any_decl', True]) + b'|')
                 else:
-                    decl_dict[client] = declaration
+                    decl_dict[client] = to_analyse
+                    
+                    for i in [j for j in clients if j != client]:
+                        i.sendall(pickle.dumps(['o_decl', (players[client], declMsg(to_analyse))]) + b'|')
+                        time.sleep(3)
                     break
     
     # Check for Bela
@@ -485,10 +524,19 @@ def declInput(trump, trump_client, client_hand_dict):
         
         # if one team holds a declaration with the highest value, all of their declarations are counted towards the final score
         if max_decl: 
-            decl_to_score = sum([decl_values[declToString(decl)] for decl in flatListFromDictVal(decl_dict, teams[max_decl_team])])
-            print(f'{max_decl_team} holds the highest value declaration so all of their declarations count.\n {max_decl_team} receives {decl_to_score} points')
-            
-            score[max_decl_team] += sum([decl_values[declToString(decl)] for decl in flatListFromDictVal(decl_dict, teams[max_decl_team])])
+            decl_to_score = sum([decl_values[declToString(decl)] for decl in decl_dict[max_decl[0]]])
+            print(f'{max_decl[0]} holds the highest value declaration so all of their declarations count.\n {max_decl[0]} receives {decl_to_score} points')
+            score.add_(players[max_decl[0]], decl_to_score) 
+
+            for i in clients:
+                if i == max_decl[0]:
+                    i.sendall(pickle.dumps(['max_decl', ('you', max_decl[1])]) + b'|')
+                else:
+                    i.sendall(pickle.dumps(['max_decl', (players[max_decl[0]], max_decl[1])]) + b'|')
+                i.sendall(pickle.dumps(['score', (players[client], decl_to_score)]) + b'|')
+        else:
+            for i in clients:
+                i.sendall(pickle.dumps(['decl_tie', True]) + b'|')
     
     print(score)
     print('Done with declarations')

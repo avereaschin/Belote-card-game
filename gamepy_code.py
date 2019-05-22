@@ -49,6 +49,63 @@ def cardToFileName(card):
 	print(card)
 	return f'{card.Rank}_of_{card.Suit}.jpg'
 
+def declLen(declaration):
+    """
+    Returns the length of the declaration. If the declaration is a sequence with more than 5 cards the function will return 5.
+    """
+    if declType(declaration) == 1 and len(declaration) > 5:
+        return 5
+    else:
+        return len(declaration)
+
+def declType(declaration):
+    """
+    There are 3 tiers of declarations:
+    tier 1 (lowest): Sequences. E.g. J, Q, K, A
+    tier 2: Squares. E.g. Q, Q, Q, Q
+    tier 3 (highest, i.e. declaration always counts): Bela. Only trump suit Q, K
+    """
+    
+    # If the length of declaration is 2 then it can only be a Bela
+    if len(declaration) == 2:
+        return 3
+    # If the length of declaration is 4 it can either be a sequence or a square. The following code checks that:
+    if len(declaration) == 4: 
+        for card in declaration[1:]:
+            if card.Rank == declaration[declaration.index(card) - 1].Rank:
+                pass
+                if card == declaration[-1]:
+                    return 2
+            else: 
+                return 1
+    else:
+        return 1
+
+def declMsg(decls):
+    """
+    Compiles a message regarding a player's declaration(s) to be sent to his opponents. Declarations aren't supposed to reveal a player's
+    cards until we know for sure that the player holds the highest declaration. As a result, if a player declares a 3 card sequnce: [J Hearts,
+    Q Hearts, K Hearts], his opponents will only be told that "a 3 card sequence (high K)" has been declared.
+    """
+    msg = ''
+
+    for i, decl in enumerate(decls):
+        print(decl)
+        if i > 0:
+            msg += ' ' + 'and'
+            print(msg)
+        if declType(decl) == 1:
+            msg += f'a {declLen(decl)} card sequence (high {decl[-1].Rank})' 
+            print(msg)           
+        elif declType(decl) == 2:
+            msg += 'a square'
+            print(msg)
+        else:
+            msg += 'Bela'
+            print(msg)
+
+    return msg
+
 class Card():
 
 	surf_ = None
@@ -324,10 +381,6 @@ def pickTrump():
 			# on CLICK
 			if event.type == pg.MOUSEBUTTONDOWN:
 				
-				# for surf, rect in zip(hand.create_surf(), hand.draw_rect()):
-				# 	if rect.collidepoint((mx, my)):
-				# 		print('True')
-
 				# on FIRST ROUND of picking trump
 				if game_state['round_1']:
 					# if clicked play
@@ -373,7 +426,7 @@ def pickTrump():
 		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
 		
 		for i, player, points in zip(range(4), score.dict_.keys(), score.dict_.values()):
-			score_scr.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, 20 + (12 + 4) * i))
+			game_display.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, display_height - 100 + 20 + (12 + 4) * i))
 
 		# CARD BACK AND TRUMP BLIT (IF TRUMP HASN'T BEEN PICKED)
 		if not game_state['trump']:
@@ -448,7 +501,7 @@ def pickTrump():
 		if game_state['pick_trump']:
 			game_display.blit(s, ((display_width - 440)/2, display_height - 250))
 			s.blit(TextRender(f'You played {trump}', 25).text_surf, ((440 - TextRender(f'You played {trump}', 25).text_rect.size[0]) / 2, 2))
-			if sleep_.wait_(1500):
+			if sleep_.wait_(1000):
 				game_state['pick_trump'] = False
 
 		# IF YOU PASSED
@@ -466,12 +519,16 @@ def pickTrump():
 		# IF OPPONENT PICKED TRUMP SUIT
 		if game_state['trump'] and game_state['o_trump']:
 			game_display.blit(TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_trump"])} picked {game_state["trump"]}', 25).text_rect.size[0]) / 2, 470))
-			if sleep_.wait_(1500):
+			if sleep_.wait_(1000):
 				game_state['o_trump'] = False
+				print('One')
+				
 
 		# IF SERVER FINISHED SENDING PICK TRUMP INSTRUCTIONS START DECLARATIONS PHASE OF THE GAME
 		if game_state['declaration']:
+			print('two')
 			declarations(game_state['trump'])
+
 				
 		pg.display.update()
 
@@ -503,7 +560,8 @@ def declarations(trump):
 	print('Declare: ', TextRender('Declare', 18).text_rect.size)
 	print('No decl: ', TextRender('Nothing to declare', 20, bold=True).text_rect.size)
 
-	game_state = {'any_decl': False, 'o_think': None, 'no_decl': False, 'any_decl_err': False}
+	game_state = {'any_decl': False, 'o_think': None, 'decl': False, 'no_decl': False, 'any_decl_err': False, 'o_no_decl': False, 
+				  'o_decl': False, 'score': None, 'max_decl': None}
 
 	while not crashed:
 		
@@ -554,20 +612,20 @@ def declarations(trump):
 				
 					# if pressed 'Declare' button send decl_list to server
 					if play_b.collidepoint((mx, my)):
-						if not decl_list:
+						if not decl_list and declaration:
 							decl_list += [declaration[:]]
 							clnt_q.put(decl_list)
-						else:
+							game_state['decl'] = declMsg(decl_list)
+						elif decl_list:
 							clnt_q.put(decl_list)
-						game_state['any_decl'] = False
-						game_state['any_decl_err'] = False
+							game_state['decl'] = declMsg(decl_list)
+						else:
+							game_state['any_decl_err'] = True
 
 					# if pressed 'No declarations' button send 'none' to server
 					if pass_b.collidepoint((mx, my)):
 						game_state['no_decl'] = True
 						clnt_q.put('none')	
-						game_state['any_decl'] = False	
-						game_state['any_decl_err'] = False
 					
 					# if pressed 'Add' button declaration to decl_list
 					if add_d.collidepoint((mx, my)):
@@ -606,19 +664,28 @@ def declarations(trump):
 			game_display.blit(s, ((display_width - 440)/2, display_height - 300))
 			
 			if game_state['no_decl']:
-				s.blit(TextRender('Nothing to declare', 20, bold=True).text_surf, (133, 2)) # (174px, 24px)
-				sleep_.wait_(1500)
-				game_state['any_decl'] = False
-				game_state['no_decl'] = False
+				game_display.blit(TextRender('Nothing to declare', 20, bold=True).text_surf, ((display_width - 440)/2 + 133, display_height - 298)) # (174px, 24px)
+				if sleep_.wait_(1500):
+					game_state['any_decl'] = False	
+					game_state['any_decl_err'] = False
+
+			elif game_state['decl']: 
+				if TextRender(f'You declared {game_state["decl"]}', 20).text_rect.size[0] > 440:
+					game_display.blit(TextRender(f'You declared {game_state["decl"]}', 15).text_surf, ((display_width - 440 + TextRender(f'You declared {game_state["decl"]}', 15).text_rect.size[0]) / 2, display_height - 298))
+				else:
+					game_display.blit(TextRender(f'You declared {game_state["decl"]}', 20).text_surf, ((display_width - 440 + TextRender(f'You declared {game_state["decl"]}', 20).text_rect.size[0]) / 2, display_height - 298))
+				if sleep_.wait_(3000):
+					game_state['any_decl'] = False
+					game_state['any_decl_err'] = False
 
 			else:
-
 				if game_state['any_decl_err']:
-					s.blit(TextRender('Invalid declaration, try again.', 20, bold=True).text_surf, (83, 2)) # (273px, 24px)
-
+					game_display.blit(TextRender('Invalid declaration, try again.', 20, bold=True).text_surf, ((display_width - 440)/2 + 83, display_height - 298)) # (273px, 24px)
+					if sleep_.wait_(1500):
+						game_state['any_decl_err'] = False
 				else:
-					s.blit(TextRender('Any declarations?', 20, bold=True).text_surf, (141, 2)) # (157px, 24px)
-					s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, (37, 25)) # (365px, 20px)
+					game_display.blit(TextRender('Any declarations?', 20, bold=True).text_surf, ((display_width - 440)/2 + 141, display_height - 298)) # (157px, 24px)
+					s.blit(TextRender('(Select cards, press add declaration then declare)', 17).text_surf, ((display_width - 440)/2 + 37, display_height - 275)) # (365px, 20px)
 
 				play_b = pg.draw.rect(game_display, black, (420 + 30, 475, 150, 33), 1)
 				game_display.blit(TextRender('Declare', 18).text_surf, (420 + 30 + (150 - 62) / 2, 475 + (33 - 21) / 2)) # (62px, 21px)
@@ -634,10 +701,35 @@ def declarations(trump):
 				clear_d = pg.draw.rect(game_display, black, ((display_width - 320) / 2 + 170, display_height - 185, 150, 33), 1)
 				clear_s.blit(TextRender('Clear', 16, italic=True).text_surf, (56, 7)) # (38px, 19px)
 
+		# IF OPPONENT HAS NOTHING TO DECLARE
+		if game_state['o_no_decl']:
+			game_display.blit(TextRender(f'{plyConvert(game_state["o_no_decl"])} has nothing to declare', 25).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_no_decl"])} has nothing to declare', 25).text_rect.size[0]) / 2, 470))
+			if sleep_.wait_(2000):
+				game_state['o_no_decl'] = None
+
+		# IF OPPONENT MADE A DECLARATION
+		if game_state['o_decl']:
+			game_display.blit(TextRender(f'{plyConvert(game_state["o_decl"][0])} declared {game_state["o_decl"][1]}', 20).text_surf, ((display_width - TextRender(f'{plyConvert(game_state["o_decl"][0])} declared {game_state["o_decl"][1]}', 20).text_rect.size[0]) / 2, 470))
+			if sleep_.wait_(3000):
+				game_state['o_decl'] = None
 
 		# THINK CLOUD BLIT
 		if game_state['o_think']:
 			game_display.blit(pg.transform.flip(think_cloud, think_cl_xy[plyConvert(game_state['o_think'])][0], 0), think_cl_xy[plyConvert(game_state['o_think'])][1])
+
+		# SCORE POINTS
+		if game_state['score']:
+			if game_state['score'][0] == 'you':
+				score.add_(*game_state['score'])
+			else:
+				score.add_(plyConvert(game_state['score'][0]), game_state['score'][1])
+			game_state['score'] = False
+
+		# DISPLAY HIGHEST DECLARATION (IF ANY)
+		if game_state['max_decl']:
+			game_display.blit(TextRender(f'{game_state["max_decl"][0]} {"have" if game_state["max_decl"][0] == "You" else "has"} the highest declaration: {game_state["max_decl"][1]}', 15).text_surf, (display_width / 3, 470))
+			if sleep_.wait_(3000):
+				game_state['max_decl'] = None
 
 		# DEFAULT OPPONENT BLIT
 
