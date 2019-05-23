@@ -264,7 +264,7 @@ def declMax(decl_dict, trump):
     
     flat_ = flatListFromDictVal(decl_dict, list(decl_dict.keys()))
     matrix_ = flatListMatrix(flat_, trump)
-    
+
     max_ = max(matrix_)
     
     if matrix_.count(max_) > 1:
@@ -531,15 +531,88 @@ def declInput(trump, trump_client, client_hand_dict):
             for i in clients:
                 if i == max_decl[0]:
                     i.sendall(pickle.dumps(['max_decl', ('you', max_decl[1])]) + b'|')
+                    i.sendall(pickle.dumps(['score', ('you', decl_to_score)]) + b'|')
                 else:
                     i.sendall(pickle.dumps(['max_decl', (players[max_decl[0]], max_decl[1])]) + b'|')
-                i.sendall(pickle.dumps(['score', (players[client], decl_to_score)]) + b'|')
+                    i.sendall(pickle.dumps(['score', (players[max_decl[0]], decl_to_score)]) + b'|')
         else:
             for i in clients:
                 i.sendall(pickle.dumps(['decl_tie', True]) + b'|')
     
     print(score)
     print('Done with declarations')
+
+def tricks(clients, trump, trump_client, client_hand_dict):
+    
+    all_data = b''
+    
+    # holds all cards played during the trick
+    trick_cards = {}
+    
+    # first person to play a card in first round's trick is whoever picked the trump suit. Thereafter, the first person
+    # to play a card is whoever won the previous trick
+    for client in clients[clients.index(trump_client):] + clients[:clients.index(trump_client)]:
+        client.send(pickle.dumps(['play_card', 1]) + b'|')
+        
+        while 1:
+            data = client.recv(1024)
+            all_data += data
+            
+            if data and b'|' in all_data:
+                to_analyse = pickle.loads(all_data[:all_data.index(b'|')])
+                print(to_analyse)
+                all_data = all_data[all_data.index(b'|') + 1:]
+                card_played = to_analyse
+                # if the player is the first one to play a card during a trick
+                if client == trump_client:
+                    legal_card = card_played
+                    trick_cards[client] = card_played
+                    break
+                else:
+                    # other players must play a card of the same suit as legal_card. If a player doesn't
+                    # hold a card of that suit, he must play a trump suit card. If the player doesn't have a trump
+                    # suit card, he can play any card in his hand.
+                    if list(filter(lambda x: x.Suit == legal_card.Suit, client_hand_dict[client])):
+                        print('We got the same stuff as the trump guy')
+                        legal_hand = list(filter(lambda x: x.Suit == legal_card.Suit, client_hand_dict[client]))
+                    elif list(filter(lambda x: x.Suit == trump, client_hand_dict[client])):
+                        print('We have to use a trump card')
+                        legal_hand = list(filter(lambda x: x.Suit == legal_card.Suit, client_hand_dict[client]))
+                    else:
+                        print('play whatever')
+                        legal_hand = client_hand_dict[client]
+                    
+                    print('Your legal_hand is: ', legal_hand)
+                    
+                    # if the card is not allowed to be played, e.g. player has a card of same suit as legal_card but 
+                    # plays a trump suit card, ask to input the card again
+                    if card_played not in legal_hand:
+                        all_data = b''
+                        client.send(pickle.dumps({'play_card': 2}) + b'|')
+                    else:
+                        trick_cards[client] = card_played
+                        break
+                    
+        client_hand_dict[client].pop(client_hand_dict[client].index(card_played))
+                
+    list_ = list(trick_cards.values())
+    list_.sort(key=lambda x: (x.Suit == trump, card_vals['trump'][x.Rank] if x.Suit == trump else card_vals['standard'][x.Rank]))
+    
+    print(*list(trick_cards.values()), sep='\n')
+    
+    for player_, card_ in trick_cards.items():
+        if list_[-1] == card_:
+            for team, player_list in teams.items():
+                if player_ in player_list:
+                    score[team] += sum([card_vals['trump'][i.Rank] if i == trump else card_vals['standard'][i.Rank] for i in list_])
+    
+    print(score)
+    
+    if len(list(filter(None, client_hand_dict.values()))):
+        return tricks(clients, trump, trump_client, client_hand_dict)
+    else:
+        return None
+
 
 
 score = Score()

@@ -33,7 +33,10 @@ card_back = pg.sprite.Group()
 crashed = False
 
 def plyConvert(player):
-	return players.dict_[player]
+	if player == 'you':
+		return 'you'
+	else:
+		return players.dict_[player]
 
 def resizeImage(pic, width):
 	height = int(pic.get_rect().size[1] * width / pic.get_rect().size[1])
@@ -161,7 +164,7 @@ class Score():
 	dict_ = {'you': 0, 'West': 0, 'North': 0, 'East': 0}
 
 	def add_(self, player, points):
-		self.dict_[player] = points
+		self.dict_[player] += points
 		
 	def clear_(self):
 		for key in list(self.dict_.keys()):
@@ -561,8 +564,10 @@ def declarations(trump):
 	print('No decl: ', TextRender('Nothing to declare', 20, bold=True).text_rect.size)
 
 	game_state = {'any_decl': False, 'o_think': None, 'decl': False, 'no_decl': False, 'any_decl_err': False, 'o_no_decl': False, 
-				  'o_decl': False, 'score': None, 'max_decl': None}
+				  'o_decl': False, 'score': None, 'max_decl': None, 'decl_tie': False}
 
+	vars_ = {'score': [(score.add_, 1)]}
+	
 	while not crashed:
 		
 		# get variables and commands from message queue
@@ -570,12 +575,17 @@ def declarations(trump):
 			msg = q.get(False)	
 		except queue.Empty:
 			pass
-		
-		# process changes to game_state 
-		if msg:
-			game_state[msg[0]] = msg[1]
 
-			# clear msg variable 
+		# process messages and changes game_state vars_ accordingly
+		if msg:
+			
+			# if msg[0] == 'score':
+			# 	score.add_(plyConvert(msg[1][0]), msg[1][1])
+			# 	print(score.dict_)
+			# 	msg = ''
+			# # check if message is an instruction to change a variable
+			# else:
+			game_state[msg[0]] = msg[1]
 			msg = ''
 
 		# background 
@@ -656,7 +666,7 @@ def declarations(trump):
 		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
 		
 		for i, player, points in zip(range(4), score.dict_.keys(), score.dict_.values()):
-			score_scr.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, 20 + (12 + 4) * i))
+			game_display.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, display_height - 100 + 20 + (12 + 4) * i))
 
 		# DECLARATIONS PROMPT BLIT
 
@@ -719,17 +729,20 @@ def declarations(trump):
 
 		# SCORE POINTS
 		if game_state['score']:
-			if game_state['score'][0] == 'you':
-				score.add_(*game_state['score'])
-			else:
-				score.add_(plyConvert(game_state['score'][0]), game_state['score'][1])
+			score.add_(plyConvert(game_state['score'][0]), game_state['score'][1])
 			game_state['score'] = False
 
 		# DISPLAY HIGHEST DECLARATION (IF ANY)
 		if game_state['max_decl']:
-			game_display.blit(TextRender(f'{game_state["max_decl"][0]} {"have" if game_state["max_decl"][0] == "You" else "has"} the highest declaration: {game_state["max_decl"][1]}', 15).text_surf, (display_width / 3, 470))
+			game_display.blit(TextRender(f'{game_state["max_decl"][0]} {"have" if game_state["max_decl"][0] == "you" else "has"} the highest declaration: {game_state["max_decl"][1]}', 15).text_surf, (display_width / 3, 470))
 			if sleep_.wait_(3000):
 				game_state['max_decl'] = None
+
+		# DECLARATION TIE
+		if game_state['decl_tie']:
+			game_display.blit(TextRender(f'Highest declarations tied.', 25).text_surf, ((display_width - TextRender(f'Highest declarations tied.', 25).text_rect[0]) / 2, 470))
+			if sleep_.wait_(3000):
+				game_state['decl_tie'] = False
 
 		# DEFAULT OPPONENT BLIT
 
@@ -767,10 +780,12 @@ def tricks():
 	# Exit application
 	
 
-	game_display.fill(green)
+	game_state = {'play_card': False}
 
 	while not crashed:
 		
+		game_display.fill(green)
+
 		# get mouse x, y coordinates
 		mx, my = pg.mouse.get_pos()				
 
@@ -794,9 +809,6 @@ def tricks():
 
 
 		pg.display.update()
-
-	pg.quit()
-	quit()
 
 
 
