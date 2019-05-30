@@ -770,7 +770,7 @@ def declarations(trump):
 		
 		pg.display.update()
 
-def tricks():
+def tricks(trump):
 
 	crashed = False
 	# Card is clicked
@@ -780,7 +780,7 @@ def tricks():
 	# Exit application
 	
 
-	game_state = {'play_card': False}
+	game_state = {'play_card': False, 'clicked': False}
 
 	while not crashed:
 		
@@ -792,6 +792,17 @@ def tricks():
 		for event in pg.event.get():
 			if event.type == pg.QUIT:
 				crashed = True
+
+			if event.type == pg.MOUSEBUTTONDOWN:
+				game_state['clicked'] = True
+
+		# DEFAULT SCORE BOARD
+		game_display.blit(score_scr, (0, display_height - 100)) # (125px, 100px)
+		
+		score_scr.blit(TextRender('SCORES', 15).text_surf, (0, 0)) 
+		
+		for i, player, points in zip(range(4), score.dict_.keys(), score.dict_.values()):
+			game_display.blit(TextRender(f'{player}: {points}', 15).text_surf, (0, display_height - 100 + 20 + (12 + 4) * i))
 
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (0, int((display_height - 88 - 25*7) / 2 + 25 * j)))
@@ -807,6 +818,10 @@ def tricks():
 				if i == k.name:
 					game_display.blit(k.image, j)
 
+		# DEFAULT YOUR CARDS BLIT 
+		
+		for card in hand.cards:
+			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 
 		pg.display.update()
 
