@@ -212,10 +212,17 @@ class Hand():
         else:
             self.cards = self.cards + [x]
     
-    def pop_(self, x):
-        self.cards.pop(self.cards.index(x))
+    def del_(self, x):
+        """
+		discards any cards that were played and redraws all their rects
+        """
 
+        del self.cards[self.cards.index(x)]
+        del self.dict_[x]
         
+        self.draw_rect()
+        self.make_dict()
+
     def clear_(self):
         self.cards = []
 
@@ -236,6 +243,24 @@ class Hand():
     		rect.topleft = xy
 
     	return rects_
+
+class Trick():
+
+	# each value holds a list of 3 elements: loaded image of the card, xy coords where it will be blitted and layer number
+	dict_ = {'West': [None, ((display_width) / 2 - 117, display_height / 2 - 120)], 
+			 'North': [None, ((display_width - 87) / 2, display_height / 2 - 150)],
+			 'East': [None, ((display_width) / 2 + 30, display_height / 2 - 120)]}
+
+	def add_(self, player, card):
+		self.dict_[plyConvert(player)].insert(0, pg.image.load(cardToFileName(card)))
+
+	def layer(self, layer):
+		self.dict_[plyConvert(player)].insert(2, layer)
+
+	def clear_(self):
+		for k, v in self.dict_.items():
+			v[0], v[2] = None, None	
+
 
 class Wait():
 
@@ -266,6 +291,9 @@ rand_trump = Card()
 hand = Hand() # holds YOUR cards
 players = Players() # holds order in which players play cards
 trump = ''
+
+hand.add_([card(Rank='J', Suit='Hearts'), card(Rank='Q', Suit='Hearts'), card(Rank='K', Suit='Hearts'), card(Rank='A', Suit='Hearts')])
+hand.make_dict()
 
 # upperleft x, y coords of opponents' hands
 west_north_east = [(0, (display_height - 120) / 2), ((display_width - 88) / 2, 0), (display_width - 88, (display_height - 120) / 2)]
@@ -772,6 +800,8 @@ def declarations(trump):
 
 def tricks(trump):
 
+	print('rect size is ', TextRender('place card here', 15, color=black).text_rect.size) 
+
 	crashed = False
 	# Card is clicked
 	clicked = False
@@ -779,8 +809,19 @@ def tricks(trump):
 	played = False
 	# Exit application
 	
+	card_coords = {'West': ((display_width) / 2 - 117, display_height / 2 - 120), 
+				   'North': ((display_width - 87) / 2, display_height / 2 - 150),
+				   'East': ((display_width) / 2 + 30, display_height / 2 - 120)}
 
-	game_state = {'play_card': False, 'clicked': False}
+	# north
+	game_display.blit(cardback.image, ((display_width - 87) / 2, display_height / 2 - 150))
+	# west
+	game_display.blit(cardback.image, ((display_width) / 2 - 117, display_height / 2 - 120))
+	# east
+	game_display.blit(cardback.image, ((display_width) / 2 + 30, display_height / 2 - 120))
+
+	game_state = {'y_turn': True, 'clicked': False, 'illegal': False, 'legal': None, 'move_card': None, 'play_card': False, 'o_turn': None,
+				  'o_play_card': None, 'end_of_trick': False, 'o_think': None}
 
 	while not crashed:
 		
@@ -793,8 +834,23 @@ def tricks(trump):
 			if event.type == pg.QUIT:
 				crashed = True
 
-			if event.type == pg.MOUSEBUTTONDOWN:
-				game_state['clicked'] = True
+			if game_state['y_turn']:
+				if event.type == pg.MOUSEBUTTONDOWN:
+					game_state['clicked'] = True
+					for card in hand.cards:
+						if hand.dict_[card][1].collidepoint((mx, my)):
+							print(card)
+							game_state['move_card'] = card
+			
+				if event.type == pg.MOUSEBUTTONUP:
+					if game_state['move_card']:
+						if play_box.collidepoint((mx, my)):
+							game_state['play_card'] = hand.dict_[game_state['move_card']]
+							# game_state['y_turn'] = False
+							hand.del_(game_state['move_card'])
+							game_state['move_card'] = None
+
+					game_state['clicked'] = False
 
 		# DEFAULT SCORE BOARD
 		game_display.blit(score_scr, (0, display_height - 100)) # (125px, 100px)
@@ -813,22 +869,47 @@ def tricks(trump):
 		for j in range(0, 8):
 			game_display.blit(pg.transform.rotate(cardback.image, 90), (display_width - 120, int((display_height - 88 - 25*7) / 2 + 25 * j)))
 
-		for i, j in zip(hand, xy_coords):	
-			for k in suits_group:
-				if i == k.name:
-					game_display.blit(k.image, j)
+		# THINK CLOUD BLIT
+		if game_state['o_think']:
+			game_display.blit(pg.transform.flip(think_cloud, think_cl_xy[plyConvert(game_state['o_think'])][0], 0), think_cl_xy[plyConvert(game_state['o_think'])][1])
 
 		# DEFAULT YOUR CARDS BLIT 
-		
-		for card in hand.cards:
-			game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
 
+		if game_state['y_turn']:
+			if game_state['illegal']:
+				game_display.blit(TextRender('YOU CAN\'T PLAY THIS CARD. TRY AGAIN!'))
+				if wait_.sleep_(1200):
+					game_state['illegal'] = False
+			game_display.blit(TextRender('PLAY A CARD', 30, bold=True, color=black).text_surf, ((display_width - 165) / 2, display_height - 161)) #(165px, 36px)
+
+		if game_state['o_play_card']:
+			pass
+
+		# IF PLAYED CARD
+		if game_state['play_card']:
+			game_display.blit(game_state['play_card'][0], ((display_width - 87) / 2, (display_height / 2) - 30))
+		
+		# IF CLICKED ON CARD
+		if game_state['move_card'] and game_state['clicked']:
+			play_box = pg.draw.rect(game_display, black, ((display_width - 250) / 2, (display_height - 250) / 2, 250, 250), 1)
+			game_display.blit(TextRender('place card here', 15, color=black).text_surf, ((display_width - 87) / 2, (display_height - 19) / 2)) #(87px, 19px)
+
+			game_display.blit(hand.dict_[game_state['move_card']][0], (mx, my))
+			
+			for card in [i for i in hand.cards if i != game_state['move_card']]:
+				game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
+		else:	
+			# DEFAULT CARD BLIT
+			for card in hand.cards:
+				game_display.blit(hand.dict_[card][0], hand.dict_[card][1])
+
+		
 		pg.display.update()
 
 
 
-# declarations()
-title_screen()
+tricks('Hearts')
+# title_screen()
 
 
 

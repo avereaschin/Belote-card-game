@@ -542,7 +542,9 @@ def declInput(trump, trump_client, client_hand_dict):
     print(score)
     print('Done with declarations')
 
-def tricks(clients, trump, trump_client, client_hand_dict):
+    tricks()
+
+def tricks(trump, trump_client, client_hand_dict):
     
     all_data = b''
     
@@ -552,7 +554,11 @@ def tricks(clients, trump, trump_client, client_hand_dict):
     # first person to play a card in first round's trick is whoever picked the trump suit. Thereafter, the first person
     # to play a card is whoever won the previous trick
     for client in clients[clients.index(trump_client):] + clients[:clients.index(trump_client)]:
-        client.send(pickle.dumps(['play_card', 1]) + b'|')
+        client.send(pickle.dumps(['y_turn', 1]) + b'|')
+        client.send(pickle.dumps(['legal', ]))
+
+        for i in [j for j in clients if j != client]:
+            i.send(pickle.dumps(['o_think', players[client]]) + b'|')
         
         while 1:
             data = client.recv(1024)
@@ -602,9 +608,7 @@ def tricks(clients, trump, trump_client, client_hand_dict):
     
     for player_, card_ in trick_cards.items():
         if list_[-1] == card_:
-            for team, player_list in teams.items():
-                if player_ in player_list:
-                    score[team] += sum([card_vals['trump'][i.Rank] if i == trump else card_vals['standard'][i.Rank] for i in list_])
+            score[team] += sum([card_vals['trump'][i.Rank] if i == trump else card_vals['standard'][i.Rank] for i in list_])
     
     print(score)
     
@@ -612,7 +616,6 @@ def tricks(clients, trump, trump_client, client_hand_dict):
         return tricks(clients, trump, trump_client, client_hand_dict)
     else:
         return None
-
 
 
 score = Score()
